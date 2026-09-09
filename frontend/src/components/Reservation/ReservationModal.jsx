@@ -48,6 +48,20 @@ export default function ReservationModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [createdTicket, setCreatedTicket] = useState(null);
   const [copiedTicket, setCopiedTicket] = useState(false);
+  const [step3Armed, setStep3Armed] = useState(false);
+
+  // Prevenir envío involuntario o por rebote de clic al entrar al paso 3
+  useEffect(() => {
+    if (step === 3) {
+      setStep3Armed(false);
+      const timer = setTimeout(() => {
+        setStep3Armed(true);
+      }, 450);
+      return () => clearTimeout(timer);
+    } else {
+      setStep3Armed(false);
+    }
+  }, [step]);
 
   // Cargar catálogo al abrir modal
   useEffect(() => {
@@ -188,6 +202,15 @@ export default function ReservationModal({
     return true;
   };
 
+  const handleFormKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (step < 3) {
+        handleNext();
+      }
+    }
+  };
+
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
@@ -198,6 +221,15 @@ export default function ReservationModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Si no está en el paso 3, nunca enviar la solicitud; avanzar al siguiente paso
+    if (step !== 3) {
+      handleNext();
+      return;
+    }
+    // Ignorar clics prematuros (primeros 450ms del paso 3) o si ya está enviando
+    if (!step3Armed || submitting) {
+      return;
+    }
     setErrorMessage('');
     setSubmitting(true);
 
@@ -374,7 +406,7 @@ export default function ReservationModal({
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-6">
               {/* Paso 1: Datos del Solicitante (RF-04.1) */}
               {step === 1 && (
                 <div className="space-y-5 animate-in fade-in duration-150">
@@ -653,6 +685,7 @@ export default function ReservationModal({
 
                 {step < 3 ? (
                   <button
+                    key="btn-next"
                     type="button"
                     onClick={handleNext}
                     className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-md shadow-brand-500/20 transition-all"
@@ -662,9 +695,12 @@ export default function ReservationModal({
                   </button>
                 ) : (
                   <button
+                    key="btn-submit"
                     type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                    disabled={submitting || !step3Armed}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all ${
+                      !step3Armed ? 'opacity-80 cursor-not-allowed' : ''
+                    } disabled:opacity-50`}
                   >
                     {submitting ? (
                       <>
