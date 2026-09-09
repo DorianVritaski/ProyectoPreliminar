@@ -59,7 +59,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Módulo restringido para la coordinación y aprobación de requerimientos hacia las áreas de Mantenimiento, TI, SSOMA y Vigilancia.
+            Módulo restringido para la coordinación y aprobación de requerimientos.
           </p>
 
           {errorMessage && (
