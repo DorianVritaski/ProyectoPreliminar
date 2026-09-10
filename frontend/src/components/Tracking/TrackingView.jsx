@@ -249,6 +249,18 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                   </div>
                 )}
 
+                {/* Detalles adicionales proporcionados por el solicitante */}
+                {sol.detalles && (
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
+                    <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] block">
+                      Detalles de la Solicitud:
+                    </span>
+                    <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                      {sol.detalles}
+                    </p>
+                  </div>
+                )}
+
                 {/* Motivo de Rechazo (si la solicitud fue rechazada) */}
                 {sol.estado === 'RECHAZADO' && (
                   <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">

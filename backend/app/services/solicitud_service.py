@@ -105,6 +105,8 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         fecha_inicio=data.fecha_inicio,
         fecha_fin=data.fecha_fin,
         estado="PENDIENTE",
+        motivo_rechazo=None,
+        detalles=data.detalles.strip() if data.detalles else None,
         protocolo_ssoma=data.protocolo_ssoma
     )
     db.add(solicitud)
@@ -126,7 +128,7 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
 
 
 def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> SolicitudResponse:
-    detalles = (
+    detalles_recursos = (
         db.query(
             SolicitudRecurso.recurso_id,
             SolicitudRecurso.cantidad,
@@ -148,7 +150,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
             cantidad=d.cantidad,
             es_critico=d.es_critico
         )
-        for d in detalles
+        for d in detalles_recursos
     ]
 
     area_nombre = "Área Institucional"
@@ -168,6 +170,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         fecha_fin=solicitud.fecha_fin,
         estado=solicitud.estado,
         motivo_rechazo=solicitud.motivo_rechazo,
+        detalles=getattr(solicitud, "detalles", None),
         protocolo_ssoma=solicitud.protocolo_ssoma,
         created_at=solicitud.created_at,
         recursos=recursos_resp

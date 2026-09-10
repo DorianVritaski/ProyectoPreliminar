@@ -19,6 +19,7 @@ class Solicitud(Base):
     fecha_fin = Column(DateTime, nullable=False, index=True)
     estado = Column(String(20), default="PENDIENTE", nullable=False, index=True) # PENDIENTE, APROBADO, RECHAZADO
     motivo_rechazo = Column(Text, nullable=True)
+    detalles = Column(Text, nullable=True)
     protocolo_ssoma = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

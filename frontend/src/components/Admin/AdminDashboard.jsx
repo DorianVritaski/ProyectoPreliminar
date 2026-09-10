@@ -726,6 +726,18 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     </div>
                   )}
 
+                  {/* Detalles adicionales del solicitante */}
+                  {sol.detalles && (
+                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
+                      <span className="font-bold uppercase tracking-wider text-slate-400 text-[10px] block">
+                        Detalles / Observaciones del Solicitante:
+                      </span>
+                      <p className="text-slate-700 whitespace-pre-line leading-relaxed">
+                        {sol.detalles}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Motivo de rechazo si aplica */}
                   {sol.motivo_rechazo && (
                     <div className="p-3 bg-rose-50/70 border border-rose-100 rounded-xl text-xs text-rose-800">

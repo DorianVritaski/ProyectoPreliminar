@@ -13,6 +13,7 @@ class SolicitudCreate(BaseModel):
     ambiente_id: int
     fecha_inicio: datetime
     fecha_fin: datetime
+    detalles: str | None = None
     protocolo_ssoma: bool = False
     recursos: list[RecursoItemRequest] = []
 
@@ -53,6 +54,7 @@ class SolicitudResponse(BaseModel):
     fecha_fin: datetime
     estado: str
     motivo_rechazo: str | None = None
+    detalles: str | None = None
     protocolo_ssoma: bool
     created_at: datetime
     recursos: list[SolicitudRecursoDetalleResponse] = []

@@ -35,6 +35,7 @@ export default function ReservationModal({
     ambiente_id: '',
     fecha_inicio: '',
     fecha_fin: '',
+    detalles: '',
     protocolo_ssoma: false,
     recursos: {}, // { [recurso_id]: cantidad }
   });
@@ -97,6 +98,7 @@ export default function ReservationModal({
         ...prev,
         fecha_inicio: prev.fecha_inicio || `${year}-${month}-${day}T09:00`,
         fecha_fin: prev.fecha_fin || `${year}-${month}-${day}T12:00`,
+        detalles: '',
       }));
     }
 
@@ -246,6 +248,7 @@ export default function ReservationModal({
         ambiente_id: Number(formData.ambiente_id),
         fecha_inicio: formData.fecha_inicio,
         fecha_fin: formData.fecha_fin,
+        detalles: formData.detalles?.trim() || null,
         protocolo_ssoma: formData.protocolo_ssoma,
         recursos: recursosArray,
       };
@@ -644,6 +647,24 @@ export default function ReservationModal({
                         </div>
                       </div>
                     ))}
+
+                    {/* Campo Detalles Adicionales */}
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-2">
+                      <label htmlFor="input-detalles" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                        Detalles
+                      </label>
+                      <p className="text-xs text-slate-500">
+                        Añada requerimientos específicos, especificaciones de mobiliario o consideraciones adicionales para la Jefatura de Operaciones.
+                      </p>
+                      <textarea
+                        id="input-detalles"
+                        rows={3}
+                        value={formData.detalles}
+                        onChange={(e) => handleInputChange('detalles', e.target.value)}
+                        placeholder="Ej: Distribución en forma de U, mesa principal para 4 ponentes, instalación y prueba de equipos 30 minutos antes..."
+                        className="w-full bg-white border border-slate-200 focus:border-brand-500 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all resize-none"
+                      />
+                    </div>
 
                     {/* Validación de Protocolo SSOMA (RF-04.3) */}
                     <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3">
