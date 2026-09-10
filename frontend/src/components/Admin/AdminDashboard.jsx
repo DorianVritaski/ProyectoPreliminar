@@ -24,7 +24,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { api } from '../../api/client';
-import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
+import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
 
 export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicData }) {
   const [activeSubTab, setActiveSubTab] = useState('solicitudes'); // 'solicitudes' | 'ambientes' | 'recursos' | 'areas_destino' | 'areas_solicitantes' | 'usuarios'
@@ -666,17 +666,27 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${sol.estado === 'APROBADO'
-                          ? 'bg-rose-100 text-rose-800 border-rose-200'
-                          : sol.estado === 'PENDIENTE'
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}
-                      >
-                        {sol.estado}
-                      </span>
+                    <div className="flex flex-col sm:items-end gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold px-3 py-1 rounded-full border ${sol.estado === 'APROBADO'
+                            ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : sol.estado === 'PENDIENTE'
+                              ? 'bg-amber-100 text-amber-800 border-amber-200'
+                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                        >
+                          {sol.estado}
+                        </span>
+                      </div>
+                      {sol.created_at && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>
+                            Registrado: <strong className="text-slate-700">{formatDateShort(sol.created_at)}</strong> ({formatTime(sol.created_at)})
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -696,7 +706,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     </div>
                     <div>
                       <span className="text-slate-400 block uppercase font-semibold text-[10px]">
-                        Horario
+                        Horario Evento
                       </span>
                       <strong className="text-slate-800 font-mono">
                         {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
