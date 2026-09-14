@@ -249,31 +249,52 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                   </div>
                 )}
 
-                {/* Validación y Conformidad Operativa (Áreas Técnicas externas como TI) */}
-                {sol.conformidades && sol.conformidades.filter(c => c.area_destino_id !== 1).length > 0 && (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1.5">
-                    <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] block">
-                      Validación Técnica y Conformidad Operativa:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {sol.conformidades.filter(c => c.area_destino_id !== 1).map((conf) => (
-                        <span
-                          key={conf.id}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${
-                            conf.estado === 'CONFORME'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : conf.estado === 'OBSERVADO'
-                              ? 'bg-rose-50 text-rose-800 border-rose-200'
-                              : 'bg-amber-50 text-amber-800 border-amber-200'
-                          }`}
-                        >
-                          <span>{conf.area_destino_nombre}:</span>
-                          <strong className="font-bold">{conf.estado}</strong>
-                        </span>
-                      ))}
+                {/* Validación y Conformidad Operativa por Área (Servicios Generales y Mantenimiento, TI, etc.) */}
+                {(() => {
+                  let confs = sol.conformidades ? [...sol.conformidades] : [];
+                  // Si aún no contiene Servicios Generales y Mantenimiento, incorporarlo de forma defensiva
+                  if (!confs.some((c) => c.area_destino_id === 1 || c.area_destino_nombre?.toLowerCase().includes('servicios generales'))) {
+                    confs.unshift({
+                      id: 'conf-sgm',
+                      area_destino_id: 1,
+                      area_destino_nombre: 'Servicios Generales y Mantenimiento',
+                      estado: sol.estado === 'APROBADO' ? 'CONFORME' : (sol.estado === 'RECHAZADO' ? 'OBSERVADO' : 'PENDIENTE'),
+                      aprobado_por_nombre: sol.estado === 'APROBADO' ? 'Jefatura de Operaciones' : null,
+                    });
+                  }
+
+                  if (confs.length === 0) return null;
+
+                  return (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1.5">
+                      <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] block">
+                        Validación Técnica y Conformidad Operativa:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {confs.map((conf) => (
+                          <span
+                            key={conf.id || conf.area_destino_id || conf.area_destino_nombre}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${
+                              conf.estado === 'CONFORME'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : conf.estado === 'OBSERVADO'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                            }`}
+                          >
+                            <span>{conf.area_destino_nombre}:</span>
+                            <strong className="font-bold">{conf.estado}</strong>
+                            {conf.aprobado_por_nombre && (
+                              <span className="text-[10px] font-normal text-slate-500">
+                                ({conf.aprobado_por_nombre})
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Detalles adicionales proporcionados por el solicitante */}
                 {sol.detalles && (

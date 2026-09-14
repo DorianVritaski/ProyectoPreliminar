@@ -832,42 +832,57 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     </div>
                   )}
 
-                  {/* Conformidad Operativa por Área (TI / Áreas Externas) */}
-                  {sol.conformidades && sol.conformidades.filter(c => c.area_destino_id !== 1).length > 0 && (
-                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1.5">
-                      <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
-                        Conformidad Operativa por Área:
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {sol.conformidades.filter(c => c.area_destino_id !== 1).map((conf) => (
-                          <div
-                            key={conf.id}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${
-                              conf.estado === 'CONFORME'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                : conf.estado === 'OBSERVADO'
-                                ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                : 'bg-amber-50 text-amber-800 border-amber-200'
-                            }`}
-                          >
-                            <span>{conf.area_destino_nombre}:</span>
-                            <span className="font-bold">{conf.estado}</span>
-                            {conf.aprobado_por_nombre && (
-                              <span className="text-[10px] font-normal text-slate-500">
-                                ({conf.aprobado_por_nombre})
-                              </span>
-                            )}
-                            {conf.observacion && (
-                              <span className="text-[10px] italic text-rose-700 ml-1">
-                                • "{conf.observacion}"
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                  {/* Conformidad Operativa por Área (Servicios Generales y Mantenimiento, TI, etc.) */}
+                  {(() => {
+                    let confs = sol.conformidades ? [...sol.conformidades] : [];
+                    if (!confs.some((c) => c.area_destino_id === 1 || c.area_destino_nombre?.toLowerCase().includes('servicios generales'))) {
+                      confs.unshift({
+                        id: 'conf-sgm',
+                        area_destino_id: 1,
+                        area_destino_nombre: 'Servicios Generales y Mantenimiento',
+                        estado: sol.estado === 'APROBADO' ? 'CONFORME' : (sol.estado === 'RECHAZADO' ? 'OBSERVADO' : 'PENDIENTE'),
+                        aprobado_por_nombre: sol.estado === 'APROBADO' ? 'Jefatura de Operaciones' : null,
+                      });
+                    }
+
+                    if (confs.length === 0) return null;
+
+                    return (
+                      <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1.5">
+                        <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
+                          Conformidad Operativa por Área:
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {confs.map((conf) => (
+                            <div
+                              key={conf.id || conf.area_destino_id || conf.area_destino_nombre}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${
+                                conf.estado === 'CONFORME'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : conf.estado === 'OBSERVADO'
+                                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              <span>{conf.area_destino_nombre}:</span>
+                              <span className="font-bold">{conf.estado}</span>
+                              {conf.aprobado_por_nombre && (
+                                <span className="text-[10px] font-normal text-slate-500">
+                                  ({conf.aprobado_por_nombre})
+                                </span>
+                              )}
+                              {conf.observacion && (
+                                <span className="text-[10px] italic text-rose-700 ml-1">
+                                  • "{conf.observacion}"
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Acciones para Sub-Administrador de Área (TI) */}
                   {isAreaAdmin && (

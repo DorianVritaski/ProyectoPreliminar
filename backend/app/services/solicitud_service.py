@@ -214,6 +214,25 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         if c.estado != "CONFORME":
             todas_ok = False
 
+    # Conformidad operativa para Servicios Generales y Mantenimiento:
+    # Esta área es gestionada por Jefatura de Operaciones y supervisa el espacio y mobiliario del evento.
+    estado_sgm = "CONFORME" if solicitud.estado == "APROBADO" else ("OBSERVADO" if solicitud.estado == "RECHAZADO" else "PENDIENTE")
+    conformidades_resp.insert(
+        0,
+        ConformidadAreaResponse(
+            id=0,
+            area_destino_id=1,
+            area_destino_nombre="Servicios Generales y Mantenimiento",
+            estado=estado_sgm,
+            observacion=solicitud.motivo_rechazo if solicitud.estado == "RECHAZADO" else None,
+            aprobado_por=None,
+            aprobado_por_nombre="Jefatura de Operaciones" if solicitud.estado == "APROBADO" else None,
+            updated_at=solicitud.created_at
+        )
+    )
+    if estado_sgm != "CONFORME":
+        todas_ok = False
+
     area_nombre = "Área Institucional"
     if solicitud.area_solicitante:
         area_nombre = solicitud.area_solicitante.nombre
