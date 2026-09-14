@@ -74,11 +74,21 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
-  // RF-05.1: Gestión de Solicitudes
-  adminGetSolicitudes: (estado) => {
-    const query = estado ? `?estado=${estado}` : '';
+  // RF-05.1: Gestión de Solicitudes y Workflow de Conformidades
+  adminGetSolicitudes: (estado, area_destino_id = null) => {
+    const params = new URLSearchParams();
+    if (estado) params.append('estado', estado);
+    if (area_destino_id !== null && area_destino_id !== undefined) {
+      params.append('area_destino_id', area_destino_id);
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
     return fetchJSON(`/admin/solicitudes${query}`);
   },
+  adminUpdateConformidad: (id, areaDestinoId, payload) =>
+    fetchJSON(`/admin/solicitudes/${id}/conformidad/${areaDestinoId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
   adminUpdateSolicitudEstado: (id, estado, motivo_rechazo = null) =>
     fetchJSON(`/admin/solicitudes/${id}/estado`, {
       method: 'PATCH',

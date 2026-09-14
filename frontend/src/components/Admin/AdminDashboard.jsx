@@ -27,6 +27,11 @@ import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
 
 export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicData }) {
+  const isAreaAdmin = Boolean(adminUser?.area_destino_id);
+  const userAreaId = adminUser?.area_destino_id;
+  const userAreaNombre = adminUser?.area_destino_nombre || (userAreaId === 2 ? 'Tecnologías de la Información (TI)' : 'Área Operativa');
+  const isTIAdmin = userAreaId === 2;
+
   const [activeSubTab, setActiveSubTab] = useState('solicitudes'); // 'solicitudes' | 'ambientes' | 'recursos' | 'areas_destino' | 'areas_solicitantes' | 'usuarios'
 
   // -------------------------------------------------------------
@@ -40,6 +45,10 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
   // Modal Rechazo
   const [rejectingSolicitud, setRejectingSolicitud] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState('');
+
+  // Modal Observar Conformidad
+  const [observingSolicitud, setObservingSolicitud] = useState(null); // { solicitudId, codigoTicket, areaDestinoId }
+  const [observacionTexto, setObservacionTexto] = useState('');
 
   // -------------------------------------------------------------
   // State: Ambientes (RF-05.2)
@@ -88,6 +97,8 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
     nombre: '',
     correo: '',
     password: '',
+    tipo_rol: 'GENERAL', // 'GENERAL' | 'TI'
+    area_destino_id: null,
     activo: true,
   });
 
@@ -104,7 +115,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
     setLoadingSolicitudes(true);
     try {
       const estadoParam = filterEstado === 'TODAS' ? null : filterEstado;
-      const data = await api.adminGetSolicitudes(estadoParam);
+      const data = await api.adminGetSolicitudes(estadoParam, isAreaAdmin ? userAreaId : null);
       setSolicitudes(data);
     } catch (err) {
       console.error(err);
@@ -203,6 +214,55 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
       onRefreshPublicData?.();
     } catch (err) {
       showFeedback(err.message, 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handlers: Workflow de Conformidad Operativa (TI)
+  const handleGiveConformidad = async (solicitudId, areaDestinoId) => {
+    setActionInProgress(solicitudId);
+    try {
+      await api.adminUpdateConformidad(solicitudId, areaDestinoId, {
+        estado: 'CONFORME',
+        usuario_admin_id: adminUser?.id,
+      });
+      showFeedback('Conformidad técnica (TI) registrada con éxito.');
+      await loadSolicitudes();
+      onRefreshPublicData?.();
+    } catch (err) {
+      showFeedback(err.message || 'Error al registrar conformidad.', 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleOpenObserveModal = (sol, areaDestinoId) => {
+    setObservingSolicitud({
+      solicitudId: sol.id,
+      codigoTicket: sol.codigo_ticket,
+      areaDestinoId: areaDestinoId,
+    });
+    const existing = sol.conformidades?.find((c) => c.area_destino_id === areaDestinoId);
+    setObservacionTexto(existing?.observacion || '');
+  };
+
+  const handleConfirmObserve = async () => {
+    if (!observingSolicitud) return;
+    setActionInProgress(observingSolicitud.solicitudId);
+    try {
+      await api.adminUpdateConformidad(observingSolicitud.solicitudId, observingSolicitud.areaDestinoId, {
+        estado: 'OBSERVADO',
+        observacion: observacionTexto.trim() || 'Se requiere revisión técnica de los equipos de TI.',
+        usuario_admin_id: adminUser?.id,
+      });
+      showFeedback('Observación técnica registrada en la solicitud.');
+      setObservingSolicitud(null);
+      setObservacionTexto('');
+      await loadSolicitudes();
+      onRefreshPublicData?.();
+    } catch (err) {
+      showFeedback(err.message || 'Error al registrar observación.', 'error');
     } finally {
       setActionInProgress(null);
     }
@@ -457,10 +517,17 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
   const handleCreateAdmin = async (e) => {
     e.preventDefault();
     try {
-      await api.adminCreateUsuario(newAdminData);
+      const payload = {
+        nombre: newAdminData.nombre.trim(),
+        correo: newAdminData.correo.trim().toLowerCase(),
+        password: newAdminData.password,
+        activo: newAdminData.activo,
+        area_destino_id: newAdminData.tipo_rol === 'TI' ? 2 : null,
+      };
+      await api.adminCreateUsuario(payload);
       showFeedback(`Cuenta administradora creada para ${newAdminData.correo}.`);
       setIsNewAdminOpen(false);
-      setNewAdminData({ nombre: '', correo: '', password: '', activo: true });
+      setNewAdminData({ nombre: '', correo: '', password: '', tipo_rol: 'GENERAL', area_destino_id: null, activo: true });
       loadUsuariosAdmin();
     } catch (err) {
       showFeedback(err.message, 'error');
@@ -499,11 +566,15 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                Dashboard Privado
+                {isAreaAdmin ? 'Dashboard Operativo' : 'Dashboard Privado'}
               </span>
-              <span className="text-xs text-slate-400">• Jefatura de Operaciones</span>
+              <span className="text-xs text-slate-400">
+                • {isAreaAdmin ? userAreaNombre : 'Jefatura de Operaciones (Servicios Generales y Mantenimiento)'}
+              </span>
             </div>
-            <h2 className="text-xl font-bold mt-0.5">Gestión y Aprobación Centralizada</h2>
+            <h2 className="text-xl font-bold mt-0.5">
+              {isAreaAdmin ? `Control de Recursos y Conformidades (${isTIAdmin ? 'TI' : userAreaNombre})` : 'Gestión y Aprobación Centralizada'}
+            </h2>
           </div>
         </div>
 
@@ -540,7 +611,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
         </div>
       )}
 
-      {/* Tabs Navigation (Admin Modules) */}
+      {/* Tabs Navigation (Admin Modules Adaptativo) */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
         <button
           onClick={() => setActiveSubTab('solicitudes')}
@@ -550,19 +621,21 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
             }`}
         >
           <Inbox className="w-4 h-4" />
-          <span>Bandeja de Solicitudes</span>
+          <span>{isAreaAdmin ? `Bandeja de Solicitudes (${isTIAdmin ? 'TI' : userAreaNombre})` : 'Bandeja de Solicitudes'}</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('ambientes')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'ambientes'
-            ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-            }`}
-        >
-          <Building className="w-4 h-4" />
-          <span>Ambientes Físicos</span>
-        </button>
+        {!isAreaAdmin && (
+          <button
+            onClick={() => setActiveSubTab('ambientes')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'ambientes'
+              ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+              }`}
+          >
+            <Building className="w-4 h-4" />
+            <span>Ambientes Físicos</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveSubTab('recursos')}
@@ -572,41 +645,45 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
             }`}
         >
           <Package className="w-4 h-4" />
-          <span>Inventario y Stock</span>
+          <span>{isAreaAdmin ? `Inventario (${isTIAdmin ? 'TI' : userAreaNombre})` : 'Inventario y Stock'}</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('areas_destino')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'areas_destino'
-            ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-            }`}
-        >
-          <Briefcase className="w-4 h-4" />
-          <span>Áreas Operativas</span>
-        </button>
+        {!isAreaAdmin && (
+          <>
+            <button
+              onClick={() => setActiveSubTab('areas_destino')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'areas_destino'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                }`}
+            >
+              <Briefcase className="w-4 h-4" />
+              <span>Áreas Operativas</span>
+            </button>
 
-        <button
-          onClick={() => setActiveSubTab('areas_solicitantes')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'areas_solicitantes'
-            ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-            }`}
-        >
-          <GraduationCap className="w-4 h-4" />
-          <span>Áreas Solicitantes</span>
-        </button>
+            <button
+              onClick={() => setActiveSubTab('areas_solicitantes')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'areas_solicitantes'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Áreas Solicitantes</span>
+            </button>
 
-        <button
-          onClick={() => setActiveSubTab('usuarios')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'usuarios'
-            ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-            }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Cuentas Administrador</span>
-        </button>
+            <button
+              onClick={() => setActiveSubTab('usuarios')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === 'usuarios'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Cuentas Administrador</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* ============================================================== */}
@@ -755,50 +832,153 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     </div>
                   )}
 
-                  {/* Acciones de Aprobación / Rechazo */}
-                  <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
-                    {sol.estado === 'PENDIENTE' && (
-                      <>
-                        <button
-                          onClick={() => handleOpenRejectModal(sol)}
-                          disabled={actionInProgress === sol.id}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-200 transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          <span>Rechazar Solicitud</span>
-                        </button>
+                  {/* Conformidad Operativa por Área (TI / Áreas Externas) */}
+                  {sol.conformidades && sol.conformidades.filter(c => c.area_destino_id !== 1).length > 0 && (
+                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1.5">
+                      <span className="font-bold uppercase tracking-wider text-slate-500 text-[10px] flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
+                        Conformidad Operativa por Área:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {sol.conformidades.filter(c => c.area_destino_id !== 1).map((conf) => (
+                          <div
+                            key={conf.id}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${
+                              conf.estado === 'CONFORME'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : conf.estado === 'OBSERVADO'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                            }`}
+                          >
+                            <span>{conf.area_destino_nombre}:</span>
+                            <span className="font-bold">{conf.estado}</span>
+                            {conf.aprobado_por_nombre && (
+                              <span className="text-[10px] font-normal text-slate-500">
+                                ({conf.aprobado_por_nombre})
+                              </span>
+                            )}
+                            {conf.observacion && (
+                              <span className="text-[10px] italic text-rose-700 ml-1">
+                                • "{conf.observacion}"
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                        <button
-                          onClick={() => handleApprove(sol.id)}
-                          disabled={actionInProgress === sol.id}
-                          className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Aprobar Solicitud</span>
-                        </button>
-                      </>
-                    )}
+                  {/* Acciones para Sub-Administrador de Área (TI) */}
+                  {isAreaAdmin && (
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                      <div className="text-xs text-slate-500">
+                        Rol: <strong className="text-slate-800">{userAreaNombre}</strong>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const myConf = sol.conformidades?.find((c) => c.area_destino_id === userAreaId);
+                          const isConforme = myConf?.estado === 'CONFORME';
 
-                    {sol.estado === 'APROBADO' && (
-                      <button
-                        onClick={() => handleOpenRejectModal(sol)}
-                        disabled={actionInProgress === sol.id}
-                        className="text-xs text-slate-500 hover:text-rose-600 font-medium underline"
-                      >
-                        Cambiar a Rechazado
-                      </button>
-                    )}
+                          return (
+                            <>
+                              <button
+                                onClick={() => handleOpenObserveModal(sol, userAreaId)}
+                                disabled={actionInProgress === sol.id}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-200 transition-colors"
+                              >
+                                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                <span>{myConf?.estado === 'OBSERVADO' ? 'Editar Observación' : 'Observar Solicitud'}</span>
+                              </button>
 
-                    {sol.estado === 'RECHAZADO' && (
-                      <button
-                        onClick={() => handleApprove(sol.id)}
-                        disabled={actionInProgress === sol.id}
-                        className="text-xs text-slate-500 hover:text-emerald-600 font-medium underline"
-                      >
-                        Reconsiderar y Aprobar
-                      </button>
-                    )}
-                  </div>
+                              <button
+                                onClick={() => handleGiveConformidad(sol.id, userAreaId)}
+                                disabled={actionInProgress === sol.id || isConforme}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                                  isConforme
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                                }`}
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                <span>{isConforme ? 'Conformidad Otorgada ✓' : `Dar Conformidad ${isTIAdmin ? 'TI' : ''}`}</span>
+                              </button>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Acciones para Jefatura de Operaciones (Aprobación Final / Rechazo) */}
+                  {!isAreaAdmin && (
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                      <div>
+                        {sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl font-medium">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            Aprobación bloqueada: Requiere previa Conformidad de TI
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {sol.estado === 'PENDIENTE' && (
+                          <>
+                            <button
+                              onClick={() => handleOpenRejectModal(sol)}
+                              disabled={actionInProgress === sol.id}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-200 transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Rechazar Solicitud</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleApprove(sol.id)}
+                              disabled={
+                                actionInProgress === sol.id ||
+                                (sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada)
+                              }
+                              title={
+                                sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada
+                                  ? 'No puede aprobar hasta que TI otorgue su conformidad'
+                                  : 'Aprobar definitivamente'
+                              }
+                              className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+                                sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada
+                                  ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                              }`}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Aprobar Solicitud (Final)</span>
+                            </button>
+                          </>
+                        )}
+
+                        {sol.estado === 'APROBADO' && (
+                          <button
+                            onClick={() => handleOpenRejectModal(sol)}
+                            disabled={actionInProgress === sol.id}
+                            className="text-xs text-slate-500 hover:text-rose-600 font-medium underline"
+                          >
+                            Cambiar a Rechazado
+                          </button>
+                        )}
+
+                        {sol.estado === 'RECHAZADO' && (
+                          <button
+                            onClick={() => handleApprove(sol.id)}
+                            disabled={actionInProgress === sol.id}
+                            className="text-xs text-slate-500 hover:text-emerald-600 font-medium underline"
+                          >
+                            Reconsiderar y Aprobar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -911,7 +1091,10 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
           </div>
 
           <div className="space-y-4">
-            {catalogoRecursos.map((area) => (
+            {(isAreaAdmin
+              ? catalogoRecursos.filter((a) => a.area_id === userAreaId)
+              : catalogoRecursos
+            ).map((area) => (
               <div key={area.area_id} className="bg-white p-5 rounded-3xl border border-slate-200 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
@@ -1208,6 +1391,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                   <th className="p-3">ID</th>
                   <th className="p-3">Nombre</th>
                   <th className="p-3">Correo Institucional</th>
+                  <th className="p-3">Rol / Alcance</th>
                   <th className="p-3">Estado</th>
                   <th className="p-3">Fecha de Alta</th>
                   <th className="p-3 text-right">Acciones</th>
@@ -1219,6 +1403,17 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     <td className="p-3 font-mono font-bold text-slate-400">#{user.id}</td>
                     <td className="p-3 font-bold text-slate-800 text-sm">{user.nombre}</td>
                     <td className="p-3 font-mono text-slate-600">{user.correo}</td>
+                    <td className="p-3">
+                      {user.area_destino_id === 2 || user.area_destino_nombre?.includes('TI') ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                          Admin TI
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                          Jefatura de Operaciones
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${user.activo
@@ -1290,6 +1485,44 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                 className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md shadow-rose-600/20"
               >
                 Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Observar Solicitud (TI / Área Operativa) */}
+      {observingSolicitud && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              Observar Solicitud ({observingSolicitud.codigoTicket})
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Indique las observaciones técnicas o requerimientos pendientes respecto a los recursos de TI solicitados.
+            </p>
+
+            <textarea
+              rows={3}
+              value={observacionTexto}
+              onChange={(e) => setObservacionTexto(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              placeholder="Ej. Se requiere verificar compatibilidad técnica o disponibilidad de operador para el horario solicitado..."
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setObservingSolicitud(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmObserve}
+                className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-600/20"
+              >
+                Registrar Observación
               </button>
             </div>
           </div>
@@ -1571,6 +1804,25 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
               <span className="text-[10px] text-slate-400 mt-0.5 block">
                 Debe pertenecer al dominio @continental.edu.pe
               </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Tipo de Rol / Alcance</label>
+              <select
+                value={newAdminData.tipo_rol}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewAdminData((prev) => ({
+                    ...prev,
+                    tipo_rol: val,
+                    area_destino_id: val === 'TI' ? 2 : null,
+                  }));
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              >
+                <option value="GENERAL">Jefatura de Operaciones (Principal - Servicios Generales y Aprobación Final)</option>
+                <option value="TI">Administrador de Área: Tecnologías de la Información (TI)</option>
+              </select>
             </div>
 
             <div>

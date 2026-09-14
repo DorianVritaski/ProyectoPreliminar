@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.solicitud import Solicitud, SolicitudRecurso
+from app.models.solicitud import Solicitud, SolicitudRecurso, SolicitudConformidad
 from app.models.ambiente import Ambiente
 from app.models.recurso import Recurso
 from app.models.area_destino import AreaDestino
@@ -13,7 +13,8 @@ from app.models.area_solicitante import AreaSolicitante
 from app.schemas.solicitud import (
     SolicitudCreate,
     SolicitudResponse,
-    SolicitudRecursoDetalleResponse
+    SolicitudRecursoDetalleResponse,
+    ConformidadAreaResponse
 )
 from app.services.disponibilidad import (
     verificar_solapamiento_ambiente,
@@ -112,7 +113,8 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
     db.add(solicitud)
     db.flush() # Obtiene el ID generado
 
-    # 6. Insertar recursos solicitados
+    # 6. Insertar recursos solicitados y registrar áreas operativas involucradas
+    areas_involucradas = set()
     for req in data.recursos:
         sol_rec = SolicitudRecurso(
             solicitud_id=solicitud.id,
@@ -120,6 +122,21 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
             cantidad=req.cantidad
         )
         db.add(sol_rec)
+        rec_obj = db.query(Recurso).filter(Recurso.id == req.recurso_id).first()
+        if rec_obj and rec_obj.area_destino_id:
+            # Jefatura de Operaciones administra directamente Servicios Generales y Mantenimiento (área 1).
+            # Por tanto, no requiere pre-conformidad operativa separada.
+            if rec_obj.area_destino_id != 1:
+                areas_involucradas.add(rec_obj.area_destino_id)
+
+    # 7. Crear automáticamente registros de conformidad en estado PENDIENTE
+    for area_id in areas_involucradas:
+        conf = SolicitudConformidad(
+            solicitud_id=solicitud.id,
+            area_destino_id=area_id,
+            estado="PENDIENTE"
+        )
+        db.add(conf)
 
     db.commit()
     db.refresh(solicitud)
@@ -134,6 +151,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
             SolicitudRecurso.cantidad,
             Recurso.nombre,
             Recurso.es_critico,
+            Recurso.area_destino_id,
             AreaDestino.nombre.label("area_destino_nombre")
         )
         .join(Recurso, SolicitudRecurso.recurso_id == Recurso.id)
@@ -146,12 +164,55 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         SolicitudRecursoDetalleResponse(
             recurso_id=d.recurso_id,
             nombre=d.nombre,
+            area_destino_id=d.area_destino_id,
             area_destino_nombre=d.area_destino_nombre,
             cantidad=d.cantidad,
             es_critico=d.es_critico
         )
         for d in detalles_recursos
     ]
+
+    # Cargar conformidades por área
+    conformidades_db = (
+        db.query(SolicitudConformidad)
+        .filter(SolicitudConformidad.solicitud_id == solicitud.id)
+        .all()
+    )
+
+    conformidades_resp = []
+    requiere_ti = False
+    conformidad_ti_ok = True
+    todas_ok = True
+
+    for c in conformidades_db:
+        # Excluir Servicios Generales y Mantenimiento (área 1), administrada por la propia Jefatura
+        if c.area_destino_id == 1:
+            continue
+
+        area_nom = c.area_destino.nombre if c.area_destino else f"Área #{c.area_destino_id}"
+        admin_nom = c.administrador.nombre if c.administrador else None
+
+        conformidades_resp.append(
+            ConformidadAreaResponse(
+                id=c.id,
+                area_destino_id=c.area_destino_id,
+                area_destino_nombre=area_nom,
+                estado=c.estado,
+                observacion=c.observacion,
+                aprobado_por=c.aprobado_por,
+                aprobado_por_nombre=admin_nom,
+                updated_at=c.updated_at
+            )
+        )
+
+        is_ti = (c.area_destino_id == 2) or ("TI" in area_nom.upper())
+        if is_ti:
+            requiere_ti = True
+            if c.estado != "CONFORME":
+                conformidad_ti_ok = False
+
+        if c.estado != "CONFORME":
+            todas_ok = False
 
     area_nombre = "Área Institucional"
     if solicitud.area_solicitante:
@@ -173,7 +234,11 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         detalles=getattr(solicitud, "detalles", None),
         protocolo_ssoma=solicitud.protocolo_ssoma,
         created_at=solicitud.created_at,
-        recursos=recursos_resp
+        recursos=recursos_resp,
+        conformidades=conformidades_resp,
+        requiere_conformidad_ti=requiere_ti,
+        conformidad_ti_aprobada=conformidad_ti_ok if requiere_ti else True,
+        todas_conformidades_aprobadas=todas_ok
     )
 
 

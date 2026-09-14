@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
 from app.core.database import get_db
-from app.models.solicitud import Solicitud, SolicitudRecurso
+from app.models.solicitud import Solicitud, SolicitudRecurso, SolicitudConformidad
 from app.models.ambiente import Ambiente
 from app.models.recurso import Recurso
 from app.models.area_destino import AreaDestino
@@ -13,6 +13,7 @@ from app.models.usuario_admin import UsuarioAdmin
 from app.schemas.solicitud import (
     SolicitudResponse,
     SolicitudStatusUpdate,
+    ConformidadUpdate,
     AdminLoginRequest,
     AdminLoginResponse
 )
@@ -70,6 +71,8 @@ def admin_login(body: AdminLoginRequest, db: Session = Depends(get_db)):
                 "email": usuario.correo,
                 "nombre": usuario.nombre,
                 "rol": "ADMINISTRADOR",
+                "area_destino_id": usuario.area_destino_id,
+                "area_destino_nombre": usuario.area_destino.nombre if usuario.area_destino else None,
                 "campus": "Universidad Continental"
             },
             message="Acceso concedido al panel de administración"
@@ -84,7 +87,8 @@ def admin_login(body: AdminLoginRequest, db: Session = Depends(get_db)):
                 correo=FALLBACK_ADMIN_USER,
                 nombre="Jefatura de Operaciones",
                 password_hash=FALLBACK_ADMIN_PASS,
-                activo=True
+                activo=True,
+                area_destino_id=None
             )
             db.add(admin_db)
             db.commit()
@@ -97,6 +101,8 @@ def admin_login(body: AdminLoginRequest, db: Session = Depends(get_db)):
                 "email": admin_db.correo,
                 "nombre": admin_db.nombre,
                 "rol": "ADMINISTRADOR",
+                "area_destino_id": None,
+                "area_destino_nombre": None,
                 "campus": "Universidad Continental"
             },
             message="Acceso concedido al panel de administración"
@@ -111,17 +117,75 @@ def admin_login(body: AdminLoginRequest, db: Session = Depends(get_db)):
 # -------------------------------------------------------------
 # 1. Gestión de Solicitudes (RF-05.1)
 # -------------------------------------------------------------
+# -------------------------------------------------------------
+# 1. Gestión de Solicitudes y Workflow de Conformidades
+# -------------------------------------------------------------
 @router.get("/solicitudes", response_model=list[SolicitudResponse])
 def listar_todas_las_solicitudes(
     estado: str | None = Query(None, description="Filtro opcional por estado: PENDIENTE, APROBADO, RECHAZADO"),
+    area_destino_id: int | None = Query(None, description="Filtro para sub-administradores de área (ej. 2 para TI)"),
     db: Session = Depends(get_db)
 ):
     query = db.query(Solicitud).order_by(Solicitud.created_at.desc())
     if estado:
         query = query.filter(Solicitud.estado == estado.upper())
     
+    if area_destino_id is not None:
+        # Filtrar solicitudes que requieran insumos de esta área operativa
+        query = query.filter(
+            Solicitud.id.in_(
+                db.query(SolicitudConformidad.solicitud_id).filter(
+                    SolicitudConformidad.area_destino_id == area_destino_id
+                )
+            )
+        )
+
     solicitudes = query.all()
     return [formatear_solicitud_response(db, sol) for sol in solicitudes]
+
+
+@router.patch("/solicitudes/{id}/conformidad/{area_destino_id}", response_model=SolicitudResponse)
+def actualizar_conformidad_solicitud(
+    id: int,
+    area_destino_id: int,
+    body: ConformidadUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Permite al Administrador de Área (ej. TI) registrar su Conformidad técnica (CONFORME)
+    o indicar que el requerimiento está OBSERVADO.
+    """
+    solicitud = db.query(Solicitud).filter(Solicitud.id == id).first()
+    if not solicitud:
+        raise HTTPException(status_code=404, detail=f"Solicitud con ID {id} no encontrada.")
+
+    conformidad = db.query(SolicitudConformidad).filter(
+        SolicitudConformidad.solicitud_id == id,
+        SolicitudConformidad.area_destino_id == area_destino_id
+    ).first()
+
+    nuevo_est = body.estado.upper()
+    if nuevo_est not in ["PENDIENTE", "CONFORME", "OBSERVADO"]:
+        raise HTTPException(status_code=400, detail="Estado de conformidad inválido. Debe ser PENDIENTE, CONFORME u OBSERVADO.")
+
+    if not conformidad:
+        conformidad = SolicitudConformidad(
+            solicitud_id=id,
+            area_destino_id=area_destino_id,
+            estado=nuevo_est,
+            observacion=body.observacion,
+            aprobado_por=body.usuario_admin_id
+        )
+        db.add(conformidad)
+    else:
+        conformidad.estado = nuevo_est
+        conformidad.observacion = body.observacion
+        if body.usuario_admin_id:
+            conformidad.aprobado_por = body.usuario_admin_id
+
+    db.commit()
+    db.refresh(solicitud)
+    return formatear_solicitud_response(db, solicitud)
 
 
 @router.patch("/solicitudes/{id}/estado", response_model=SolicitudResponse)
@@ -131,9 +195,9 @@ def actualizar_estado_solicitud_admin(
     db: Session = Depends(get_db)
 ):
     """
-    Especificación SDD v1.1 - 4.B:
-    PATCH /api/v1/admin/solicitudes/{id}/estado
-    Permite Aprobar o Rechazar con registro de motivo opcional.
+    Aprobación Final (Jefatura de Operaciones) o Rechazo con justificación.
+    Regla de negocio: Si se aprueba, todas las conformidades operativas (ej. TI)
+    deben estar marcadas como CONFORME.
     """
     solicitud = db.query(Solicitud).filter(Solicitud.id == id).first()
     if not solicitud:
@@ -143,12 +207,32 @@ def actualizar_estado_solicitud_admin(
     if nuevo_estado not in ["PENDIENTE", "APROBADO", "RECHAZADO"]:
         raise HTTPException(status_code=400, detail="Estado inválido. Debe ser PENDIENTE, APROBADO o RECHAZADO.")
 
-    solicitud.estado = nuevo_estado
-    if body.motivo_rechazo is not None:
-        solicitud.motivo_rechazo = body.motivo_rechazo
-    elif nuevo_estado == "APROBADO":
-        solicitud.motivo_rechazo = None
+    if nuevo_estado == "APROBADO":
+        # Validar conformidades operativas pendientes
+        conformidades = db.query(SolicitudConformidad).filter(
+            SolicitudConformidad.solicitud_id == id
+        ).all()
 
+        pendientes = []
+        for c in conformidades:
+            # Jefatura de Operaciones administra Servicios Generales y Mantenimiento (área 1); no requiere auto-conformidad
+            if c.area_destino_id == 1:
+                continue
+            if c.estado != "CONFORME":
+                nom = c.area_destino.nombre if c.area_destino else f"Área #{c.area_destino_id}"
+                pendientes.append(f"{nom} ({c.estado})")
+
+        if pendientes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No se puede emitir la Aprobación Final. Aún faltan conformidades operativas: {', '.join(pendientes)}."
+            )
+
+        solicitud.motivo_rechazo = None
+    elif body.motivo_rechazo is not None:
+        solicitud.motivo_rechazo = body.motivo_rechazo
+
+    solicitud.estado = nuevo_estado
     db.commit()
     db.refresh(solicitud)
     return formatear_solicitud_response(db, solicitud)
@@ -481,7 +565,13 @@ def eliminar_area_destino(id: int, db: Session = Depends(get_db)):
 # -------------------------------------------------------------
 @router.get("/usuarios", response_model=list[UsuarioAdminResponse])
 def listar_usuarios_admin(db: Session = Depends(get_db)):
-    return db.query(UsuarioAdmin).order_by(UsuarioAdmin.id).all()
+    usuarios = db.query(UsuarioAdmin).order_by(UsuarioAdmin.id).all()
+    resp = []
+    for u in usuarios:
+        item = UsuarioAdminResponse.from_orm(u)
+        item.area_destino_nombre = u.area_destino.nombre if u.area_destino else "Jefatura de Operaciones (General)"
+        resp.append(item)
+    return resp
 
 
 @router.post("/usuarios", response_model=UsuarioAdminResponse, status_code=status.HTTP_201_CREATED)
@@ -495,12 +585,15 @@ def crear_usuario_admin(body: UsuarioAdminCreate, db: Session = Depends(get_db))
         correo=correo_clean,
         nombre=body.nombre.strip(),
         password_hash=body.password,
-        activo=body.activo
+        activo=body.activo,
+        area_destino_id=body.area_destino_id
     )
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
-    return nuevo
+    item = UsuarioAdminResponse.from_orm(nuevo)
+    item.area_destino_nombre = nuevo.area_destino.nombre if nuevo.area_destino else "Jefatura de Operaciones (General)"
+    return item
 
 
 @router.put("/usuarios/{id}", response_model=UsuarioAdminResponse)
@@ -521,9 +614,15 @@ def actualizar_usuario_admin(id: int, body: UsuarioAdminUpdate, db: Session = De
     if body.password is not None and body.password.strip():
         usuario.password_hash = body.password.strip()
 
+    body_dict = body.model_dump(exclude_unset=True)
+    if "area_destino_id" in body_dict:
+        usuario.area_destino_id = body.area_destino_id
+
     db.commit()
     db.refresh(usuario)
-    return usuario
+    item = UsuarioAdminResponse.from_orm(usuario)
+    item.area_destino_nombre = usuario.area_destino.nombre if usuario.area_destino else "Jefatura de Operaciones (General)"
+    return item
 
 
 @router.delete("/usuarios/{id}")

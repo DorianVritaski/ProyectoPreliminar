@@ -34,9 +34,28 @@ class SolicitudCreate(BaseModel):
             raise ValueError("La fecha y hora de fin debe ser posterior a la fecha y hora de inicio")
         return v
 
+class ConformidadAreaResponse(BaseModel):
+    id: int
+    area_destino_id: int
+    area_destino_nombre: str
+    estado: str # PENDIENTE, CONFORME, OBSERVADO
+    observacion: str | None = None
+    aprobado_por: int | None = None
+    aprobado_por_nombre: str | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+class ConformidadUpdate(BaseModel):
+    estado: str # CONFORME, OBSERVADO, PENDIENTE
+    observacion: str | None = None
+    usuario_admin_id: int | None = None
+
 class SolicitudRecursoDetalleResponse(BaseModel):
     recurso_id: int
     nombre: str
+    area_destino_id: int | None = None
     area_destino_nombre: str
     cantidad: int
     es_critico: bool = False
@@ -58,6 +77,10 @@ class SolicitudResponse(BaseModel):
     protocolo_ssoma: bool
     created_at: datetime
     recursos: list[SolicitudRecursoDetalleResponse] = []
+    conformidades: list[ConformidadAreaResponse] = []
+    requiere_conformidad_ti: bool = False
+    conformidad_ti_aprobada: bool = True
+    todas_conformidades_aprobadas: bool = True
 
     class Config:
         from_attributes = True

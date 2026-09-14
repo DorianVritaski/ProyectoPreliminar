@@ -6,6 +6,7 @@ class UsuarioAdminBase(BaseModel):
     correo: str
     nombre: str = Field(min_length=3, max_length=150)
     activo: bool = True
+    area_destino_id: int | None = Field(default=None, description="ID del área operativa asignada (ej. 2 para TI). NULL para Jefatura de Operaciones.")
 
     @field_validator("correo")
     @classmethod
@@ -22,9 +23,11 @@ class UsuarioAdminUpdate(BaseModel):
     nombre: str | None = None
     activo: bool | None = None
     password: str | None = Field(default=None, min_length=6)
+    area_destino_id: int | None = None
 
 class UsuarioAdminResponse(UsuarioAdminBase):
     id: int
+    area_destino_nombre: str | None = None
     created_at: datetime | None = None
 
     class Config:

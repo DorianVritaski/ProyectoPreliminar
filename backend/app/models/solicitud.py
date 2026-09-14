@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -26,6 +26,7 @@ class Solicitud(Base):
     ambiente = relationship("Ambiente", back_populates="solicitudes")
     area_solicitante = relationship("AreaSolicitante", back_populates="solicitudes")
     recursos_solicitados = relationship("SolicitudRecurso", back_populates="solicitud", cascade="all, delete-orphan")
+    conformidades = relationship("SolicitudConformidad", back_populates="solicitud", cascade="all, delete-orphan")
 
 
 class SolicitudRecurso(Base):
@@ -41,3 +42,22 @@ class SolicitudRecurso(Base):
 
     solicitud = relationship("Solicitud", back_populates="recursos_solicitados")
     recurso = relationship("Recurso", back_populates="solicitudes_detalle")
+
+
+class SolicitudConformidad(Base):
+    __tablename__ = "solicitudes_conformidades"
+    __table_args__ = (
+        UniqueConstraint("solicitud_id", "area_destino_id", name="unique_solicitud_area"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    solicitud_id = Column(Integer, ForeignKey("solicitudes.id", ondelete="CASCADE"), nullable=False)
+    area_destino_id = Column(Integer, ForeignKey("areas_destino.id"), nullable=False)
+    estado = Column(String(20), default="PENDIENTE", nullable=False) # PENDIENTE, CONFORME, OBSERVADO
+    observacion = Column(Text, nullable=True)
+    aprobado_por = Column(Integer, ForeignKey("usuarios_admin.id"), nullable=True)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    solicitud = relationship("Solicitud", back_populates="conformidades")
+    area_destino = relationship("AreaDestino")
+    administrador = relationship("UsuarioAdmin")
