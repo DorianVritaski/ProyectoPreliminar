@@ -14,6 +14,8 @@ import {
   Loader2,
   Building,
   Info,
+  Link2,
+  ExternalLink,
 } from 'lucide-react';
 import { api } from '../../api/client';
 
@@ -36,6 +38,7 @@ export default function ReservationModal({
     fecha_inicio: '',
     fecha_fin: '',
     detalles: '',
+    croquis_url: '',
     protocolo_ssoma: false,
     recursos: {}, // { [recurso_id]: cantidad }
   });
@@ -99,6 +102,7 @@ export default function ReservationModal({
         fecha_inicio: prev.fecha_inicio || `${year}-${month}-${day}T09:00`,
         fecha_fin: prev.fecha_fin || `${year}-${month}-${day}T12:00`,
         detalles: '',
+        croquis_url: '',
       }));
     }
 
@@ -249,6 +253,7 @@ export default function ReservationModal({
         fecha_inicio: formData.fecha_inicio,
         fecha_fin: formData.fecha_fin,
         detalles: formData.detalles?.trim() || null,
+        croquis_url: formData.croquis_url?.trim() || null,
         protocolo_ssoma: formData.protocolo_ssoma,
         recursos: recursosArray,
       };
@@ -664,6 +669,43 @@ export default function ReservationModal({
                         placeholder="Ej: Distribución en forma de U, mesa principal para 4 ponentes, instalación y prueba de equipos 30 minutos antes..."
                         className="w-full bg-white border border-slate-200 focus:border-brand-500 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all resize-none"
                       />
+                    </div>
+
+                    {/* Campo Croquis de Distribución de Mobiliario (Enlace Google Drive) */}
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="input-croquis" className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                          <Link2 className="w-3.5 h-3.5 text-brand-600" />
+                          <span>Croquis de Distribución del Mobiliario (Opcional)</span>
+                        </label>
+                        <span className="text-[10px] bg-slate-200/80 text-slate-600 font-semibold px-2 py-0.5 rounded-md">
+                          Google Drive
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Si dispone de una imagen o diagrama con la distribución de los mobiliarios en el espacio, ingrese el enlace compartido de Google Drive (asegúrese de que tenga permisos de lectura "Cualquier persona con el enlace").
+                      </p>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          id="input-croquis"
+                          value={formData.croquis_url}
+                          onChange={(e) => handleInputChange('croquis_url', e.target.value)}
+                          placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+                          className="w-full bg-white border border-slate-200 focus:border-brand-500 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all pr-10"
+                        />
+                        {formData.croquis_url && (
+                          <a
+                            href={formData.croquis_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Probar enlace en nueva pestaña"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-600 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     {/* Validación de Protocolo SSOMA (RF-04.3) */}

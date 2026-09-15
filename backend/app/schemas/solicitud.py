@@ -14,6 +14,7 @@ class SolicitudCreate(BaseModel):
     fecha_inicio: datetime
     fecha_fin: datetime
     detalles: str | None = None
+    croquis_url: str | None = None
     protocolo_ssoma: bool = False
     recursos: list[RecursoItemRequest] = []
 
@@ -74,6 +75,7 @@ class SolicitudResponse(BaseModel):
     estado: str
     motivo_rechazo: str | None = None
     detalles: str | None = None
+    croquis_url: str | None = None
     protocolo_ssoma: bool
     created_at: datetime
     recursos: list[SolicitudRecursoDetalleResponse] = []

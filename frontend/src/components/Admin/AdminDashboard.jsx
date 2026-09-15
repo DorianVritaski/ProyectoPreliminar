@@ -22,6 +22,8 @@ import {
   Layers,
   ArrowRight,
   UserPlus,
+  ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
@@ -822,6 +824,25 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                       <p className="text-slate-700 whitespace-pre-line leading-relaxed">
                         {sol.detalles}
                       </p>
+                    </div>
+                  )}
+
+                  {/* Croquis de distribución de mobiliario (Google Drive) */}
+                  {sol.croquis_url && (
+                    <div className="p-3 bg-brand-50/70 border border-brand-200/80 rounded-xl text-xs flex flex-wrap items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 text-brand-900 font-medium">
+                        <ImageIcon className="w-4 h-4 text-brand-600 shrink-0" />
+                        <span>Croquis de distribución de mobiliario adjunto</span>
+                      </div>
+                      <a
+                        href={sol.croquis_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors shadow-sm shrink-0"
+                      >
+                        <span>Abrir Croquis (Drive)</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
                     </div>
                   )}
 

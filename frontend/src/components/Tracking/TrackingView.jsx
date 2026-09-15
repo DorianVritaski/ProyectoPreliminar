@@ -13,6 +13,8 @@ import {
   Clock3,
   Loader2,
   Sparkles,
+  ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
@@ -305,6 +307,25 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                     <p className="text-slate-700 whitespace-pre-line leading-relaxed">
                       {sol.detalles}
                     </p>
+                  </div>
+                )}
+
+                {/* Croquis de distribución de mobiliario (Google Drive) */}
+                {sol.croquis_url && (
+                  <div className="p-3.5 bg-brand-50/70 border border-brand-200 rounded-2xl text-xs flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 text-brand-900 font-medium">
+                      <ImageIcon className="w-4 h-4 text-brand-600 shrink-0" />
+                      <span>Croquis de distribución de mobiliario adjunto:</span>
+                    </div>
+                    <a
+                      href={sol.croquis_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors shadow-sm shrink-0"
+                    >
+                      <span>Abrir en Google Drive</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                   </div>
                 )}
 

@@ -108,6 +108,7 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         estado="PENDIENTE",
         motivo_rechazo=None,
         detalles=data.detalles.strip() if data.detalles else None,
+        croquis_url=data.croquis_url.strip() if data.croquis_url else None,
         protocolo_ssoma=data.protocolo_ssoma
     )
     db.add(solicitud)
@@ -251,6 +252,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         estado=solicitud.estado,
         motivo_rechazo=solicitud.motivo_rechazo,
         detalles=getattr(solicitud, "detalles", None),
+        croquis_url=getattr(solicitud, "croquis_url", None),
         protocolo_ssoma=solicitud.protocolo_ssoma,
         created_at=solicitud.created_at,
         recursos=recursos_resp,
