@@ -15,6 +15,7 @@ import {
   Sparkles,
   ExternalLink,
   Image as ImageIcon,
+  AlertTriangle,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
@@ -294,6 +295,31 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                           </span>
                         ))}
                       </div>
+
+                      {/* Observaciones técnicas u operativas emitidas por áreas (ej. TI) */}
+                      {confs.some((c) => c.observacion && c.area_destino_id !== 1) && (
+                        <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                          {confs.filter((c) => c.observacion && c.area_destino_id !== 1).map((c) => (
+                            <div
+                              key={`obs-${c.id || c.area_destino_id}`}
+                              className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs space-y-1.5 text-rose-900"
+                            >
+                              <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                <span>Observación técnica de {c.area_destino_nombre}:</span>
+                                {c.aprobado_por_nombre && (
+                                  <span className="text-[11px] font-normal text-rose-700">
+                                    — registrado por {c.aprobado_por_nombre}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-rose-800 whitespace-pre-line leading-relaxed font-medium pl-5">
+                                {c.observacion}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

@@ -24,6 +24,7 @@ import {
   UserPlus,
   ExternalLink,
   Image as ImageIcon,
+  Info,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
@@ -893,14 +894,62 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                                   ({conf.aprobado_por_nombre})
                                 </span>
                               )}
-                              {conf.observacion && (
-                                <span className="text-[10px] italic text-rose-700 ml-1">
-                                  • "{conf.observacion}"
-                                </span>
-                              )}
                             </div>
                           ))}
                         </div>
+
+                        {/* Observaciones técnicas emitidas por áreas (ej. TI) */}
+                        {confs.some((c) => c.observacion && c.area_destino_id !== 1) && (
+                          <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                            {confs.filter((c) => c.observacion && c.area_destino_id !== 1).map((c) => {
+                              const isConforme = c.estado === 'CONFORME';
+                              return (
+                                <div
+                                  key={`obs-${c.id || c.area_destino_id}`}
+                                  className={`p-3 rounded-xl text-xs space-y-1 border transition-all ${
+                                    isConforme
+                                      ? 'bg-amber-50/70 border-amber-200/90 text-amber-950'
+                                      : 'bg-rose-50/90 border-rose-200 text-rose-900'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-1.5 font-bold">
+                                    <div className="flex items-center gap-1.5">
+                                      {isConforme ? (
+                                        <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                      )}
+                                      <span>
+                                        {isConforme
+                                          ? `Nota técnica / Observación de ${c.area_destino_nombre}:`
+                                          : `Observación técnica de ${c.area_destino_nombre}:`}
+                                      </span>
+                                      {c.aprobado_por_nombre && (
+                                        <span className={`text-[11px] font-normal ${isConforme ? 'text-amber-700' : 'text-rose-700'}`}>
+                                          — registrado por {c.aprobado_por_nombre}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span
+                                      className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                                        isConforme
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                          : 'bg-rose-100 text-rose-800 border-rose-300'
+                                      }`}
+                                    >
+                                      {isConforme ? 'Conformidad Otorgada ✓' : 'Observación Activa'}
+                                    </span>
+                                  </div>
+                                  <p className={`whitespace-pre-line leading-relaxed font-medium pl-5 text-xs ${
+                                    isConforme ? 'text-amber-900' : 'text-rose-800'
+                                  }`}>
+                                    {c.observacion}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -924,7 +973,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-200 transition-colors"
                               >
                                 <AlertTriangle className="w-4 h-4 text-amber-600" />
-                                <span>{myConf?.estado === 'OBSERVADO' ? 'Editar Observación' : 'Observar Solicitud'}</span>
+                                <span>{myConf?.observacion ? 'Editar Observación' : 'Observar Solicitud'}</span>
                               </button>
 
                               <button
@@ -951,9 +1000,19 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
                       <div>
                         {sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada && (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl font-medium">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            Aprobación bloqueada: Requiere previa Conformidad de TI
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl font-medium border ${
+                            sol.conformidades?.some(c => c.area_destino_id === 2 && c.estado === 'OBSERVADO')
+                              ? 'text-rose-800 bg-rose-50 border-rose-200'
+                              : 'text-amber-700 bg-amber-50 border-amber-200'
+                          }`}>
+                            <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${
+                              sol.conformidades?.some(c => c.area_destino_id === 2 && c.estado === 'OBSERVADO')
+                                ? 'text-rose-600'
+                                : 'text-amber-600'
+                            }`} />
+                            {sol.conformidades?.some(c => c.area_destino_id === 2 && c.estado === 'OBSERVADO')
+                              ? 'Aprobación bloqueada: TI registró observaciones pendientes'
+                              : 'Aprobación bloqueada: Requiere previa Conformidad de TI'}
                           </span>
                         )}
                       </div>

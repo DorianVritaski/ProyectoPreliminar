@@ -173,13 +173,14 @@ def actualizar_conformidad_solicitud(
             solicitud_id=id,
             area_destino_id=area_destino_id,
             estado=nuevo_est,
-            observacion=body.observacion,
+            observacion=body.observacion.strip() if body.observacion else None,
             aprobado_por=body.usuario_admin_id
         )
         db.add(conformidad)
     else:
         conformidad.estado = nuevo_est
-        conformidad.observacion = body.observacion
+        if body.observacion is not None:
+            conformidad.observacion = body.observacion.strip() if body.observacion else None
         if body.usuario_admin_id:
             conformidad.aprobado_por = body.usuario_admin_id
 
