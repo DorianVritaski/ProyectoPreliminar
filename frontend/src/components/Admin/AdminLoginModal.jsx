@@ -10,8 +10,14 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
 
   if (!isOpen) return null;
 
-  const handleFillDemo = () => {
-    setUsername('operaciones@continental.edu.pe');
+  const handleFillDemo = (role = 'operaciones') => {
+    if (role === 'ti') {
+      setUsername('coordinador.ti@continental.edu.pe');
+    } else if (role === 'ssoma') {
+      setUsername('ssoma@continental.edu.pe');
+    } else {
+      setUsername('operaciones@continental.edu.pe');
+    }
     setPassword('admin2026');
     setErrorMessage('');
   };
@@ -97,15 +103,35 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
             />
           </div>
 
-          {/* Botón rápido Demo */}
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="w-full py-2 px-3 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 hover:bg-brand-50 text-xs text-brand-700 font-semibold flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Cargar credenciales de demostración</span>
-          </button>
+          {/* Botones rápidos Demo por Rol */}
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+              Cuentas Demo de Acceso Rápido:
+            </span>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleFillDemo('operaciones')}
+                className="py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] text-slate-700 font-bold transition-colors text-center"
+              >
+                🏢 Operaciones
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFillDemo('ti')}
+                className="py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] text-slate-700 font-bold transition-colors text-center"
+              >
+                💻 Admin TI
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFillDemo('ssoma')}
+                className="py-1.5 px-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-[11px] text-emerald-800 font-bold transition-colors text-center"
+              >
+                🛡️ SSOMA
+              </button>
+            </div>
+          </div>
 
           <div className="pt-2">
             <button

@@ -109,13 +109,21 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         motivo_rechazo=None,
         detalles=data.detalles.strip() if data.detalles else None,
         croquis_url=data.croquis_url.strip() if data.croquis_url else None,
-        protocolo_ssoma=data.protocolo_ssoma
+        protocolo_ssoma=data.protocolo_ssoma,
+        requiere_ssoma=data.requiere_ssoma,
+        url_sctr_pdf=data.url_sctr_pdf.strip() if data.url_sctr_pdf else None,
+        url_personal_externo_pdf=data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None,
+        lineamientos_ssoma=None
     )
     db.add(solicitud)
     db.flush() # Obtiene el ID generado
 
     # 6. Insertar recursos solicitados y registrar áreas operativas involucradas
     areas_involucradas = set()
+    if data.requiere_ssoma:
+        # Área 3: Seguridad, SSOMA y Vigilancia
+        areas_involucradas.add(3)
+
     for req in data.recursos:
         sol_rec = SolicitudRecurso(
             solicitud_id=solicitud.id,
@@ -183,6 +191,8 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
     conformidades_resp = []
     requiere_ti = False
     conformidad_ti_ok = True
+    requiere_ssoma_conf = bool(getattr(solicitud, "requiere_ssoma", False))
+    conformidad_ssoma_ok = True
     todas_ok = True
 
     for c in conformidades_db:
@@ -211,6 +221,12 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
             requiere_ti = True
             if c.estado != "CONFORME":
                 conformidad_ti_ok = False
+
+        is_ssoma = (c.area_destino_id == 3) or ("SSOMA" in area_nom.upper())
+        if is_ssoma:
+            requiere_ssoma_conf = True
+            if c.estado != "CONFORME":
+                conformidad_ssoma_ok = False
 
         if c.estado != "CONFORME":
             todas_ok = False
@@ -254,11 +270,17 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         detalles=getattr(solicitud, "detalles", None),
         croquis_url=getattr(solicitud, "croquis_url", None),
         protocolo_ssoma=solicitud.protocolo_ssoma,
+        requiere_ssoma=getattr(solicitud, "requiere_ssoma", False),
+        url_sctr_pdf=getattr(solicitud, "url_sctr_pdf", None),
+        url_personal_externo_pdf=getattr(solicitud, "url_personal_externo_pdf", None),
+        lineamientos_ssoma=getattr(solicitud, "lineamientos_ssoma", None),
         created_at=solicitud.created_at,
         recursos=recursos_resp,
         conformidades=conformidades_resp,
         requiere_conformidad_ti=requiere_ti,
         conformidad_ti_aprobada=conformidad_ti_ok if requiere_ti else True,
+        requiere_conformidad_ssoma=requiere_ssoma_conf,
+        conformidad_ssoma_aprobada=conformidad_ssoma_ok if requiere_ssoma_conf else True,
         todas_conformidades_aprobadas=todas_ok
     )
 

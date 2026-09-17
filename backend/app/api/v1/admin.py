@@ -14,6 +14,7 @@ from app.schemas.solicitud import (
     SolicitudResponse,
     SolicitudStatusUpdate,
     ConformidadUpdate,
+    LineamientosSSOMAUpdate,
     AdminLoginRequest,
     AdminLoginResponse
 )
@@ -168,22 +169,52 @@ def actualizar_conformidad_solicitud(
     if nuevo_est not in ["PENDIENTE", "CONFORME", "OBSERVADO"]:
         raise HTTPException(status_code=400, detail="Estado de conformidad inválido. Debe ser PENDIENTE, CONFORME u OBSERVADO.")
 
+    valid_admin_id = None
+    if body.usuario_admin_id:
+        admin_exists = db.query(UsuarioAdmin).filter(UsuarioAdmin.id == body.usuario_admin_id).first()
+        if admin_exists:
+            valid_admin_id = body.usuario_admin_id
+
     if not conformidad:
         conformidad = SolicitudConformidad(
             solicitud_id=id,
             area_destino_id=area_destino_id,
             estado=nuevo_est,
             observacion=body.observacion.strip() if body.observacion else None,
-            aprobado_por=body.usuario_admin_id
+            aprobado_por=valid_admin_id
         )
         db.add(conformidad)
     else:
         conformidad.estado = nuevo_est
         if body.observacion is not None:
             conformidad.observacion = body.observacion.strip() if body.observacion else None
-        if body.usuario_admin_id:
-            conformidad.aprobado_por = body.usuario_admin_id
+        if valid_admin_id is not None:
+            conformidad.aprobado_por = valid_admin_id
 
+    # Si se proporcionaron lineamientos de seguridad para la solicitud (ej. SSOMA)
+    if body.lineamientos_ssoma is not None:
+        solicitud.lineamientos_ssoma = body.lineamientos_ssoma.strip() if body.lineamientos_ssoma else None
+
+    db.commit()
+    db.refresh(solicitud)
+    return formatear_solicitud_response(db, solicitud)
+
+
+@router.patch("/solicitudes/{id}/lineamientos-ssoma", response_model=SolicitudResponse)
+def actualizar_lineamientos_ssoma(
+    id: int,
+    body: LineamientosSSOMAUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Permite registrar o editar los lineamientos y normas de seguridad
+    establecidos por SSOMA para un evento.
+    """
+    solicitud = db.query(Solicitud).filter(Solicitud.id == id).first()
+    if not solicitud:
+        raise HTTPException(status_code=404, detail=f"Solicitud con ID {id} no encontrada.")
+
+    solicitud.lineamientos_ssoma = body.lineamientos_ssoma.strip() if body.lineamientos_ssoma else None
     db.commit()
     db.refresh(solicitud)
     return formatear_solicitud_response(db, solicitud)

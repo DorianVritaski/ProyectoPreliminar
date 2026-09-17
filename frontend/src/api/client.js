@@ -89,11 +89,39 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
+  adminUpdateLineamientosSSOMA: (id, lineamientos_ssoma) =>
+    fetchJSON(`/admin/solicitudes/${id}/lineamientos-ssoma`, {
+      method: 'PATCH',
+      body: JSON.stringify({ lineamientos_ssoma }),
+    }),
   adminUpdateSolicitudEstado: (id, estado, motivo_rechazo = null) =>
     fetchJSON(`/admin/solicitudes/${id}/estado`, {
       method: 'PATCH',
       body: JSON.stringify({ estado, motivo_rechazo }),
     }),
+
+  // Carga de Archivos y Documentos (PDF SSOMA / SCTR / Personal Externo)
+  uploadArchivo: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE}/archivos/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const errorMsg = data?.detail || `Error al subir archivo: ${response.statusText}`;
+      throw new Error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+    }
+    return data;
+  },
+  getFileUrl: (pathOrUrl) => {
+    if (!pathOrUrl) return '';
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return pathOrUrl;
+    }
+    return `${BACKEND_URL}${pathOrUrl}`;
+  },
 
   // RF-05.2: Gestión de Ambientes
   adminGetAmbientes: () => fetchJSON('/admin/ambientes'),

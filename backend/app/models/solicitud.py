@@ -22,6 +22,10 @@ class Solicitud(Base):
     detalles = Column(Text, nullable=True)
     croquis_url = Column(Text, nullable=True)
     protocolo_ssoma = Column(Boolean, default=False)
+    requiere_ssoma = Column(Boolean, default=False)
+    url_sctr_pdf = Column(String(500), nullable=True)
+    url_personal_externo_pdf = Column(String(500), nullable=True)
+    lineamientos_ssoma = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     ambiente = relationship("Ambiente", back_populates="solicitudes")

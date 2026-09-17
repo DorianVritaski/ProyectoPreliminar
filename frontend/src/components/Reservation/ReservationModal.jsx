@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   ShieldCheck,
+  ShieldAlert,
   ArrowRight,
   ArrowLeft,
   Loader2,
@@ -16,6 +17,10 @@ import {
   Info,
   Link2,
   ExternalLink,
+  FileText,
+  UploadCloud,
+  Trash2,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../api/client';
 
@@ -40,6 +45,9 @@ export default function ReservationModal({
     detalles: '',
     croquis_url: '',
     protocolo_ssoma: false,
+    requiere_ssoma: false,
+    url_sctr_pdf: '',
+    url_personal_externo_pdf: '',
     recursos: {}, // { [recurso_id]: cantidad }
   });
 
@@ -53,6 +61,12 @@ export default function ReservationModal({
   const [createdTicket, setCreatedTicket] = useState(null);
   const [copiedTicket, setCopiedTicket] = useState(false);
   const [step3Armed, setStep3Armed] = useState(false);
+
+  // Estados para subida de PDFs de SSOMA
+  const [uploadingSctr, setUploadingSctr] = useState(false);
+  const [uploadingPersonal, setUploadingPersonal] = useState(false);
+  const [fileSctrName, setFileSctrName] = useState('');
+  const [filePersonalName, setFilePersonalName] = useState('');
 
   // Prevenir envío involuntario o por rebote de clic al entrar al paso 3
   useEffect(() => {
@@ -103,13 +117,70 @@ export default function ReservationModal({
         fecha_fin: prev.fecha_fin || `${year}-${month}-${day}T12:00`,
         detalles: '',
         croquis_url: '',
+        protocolo_ssoma: false,
+        requiere_ssoma: false,
+        url_sctr_pdf: '',
+        url_personal_externo_pdf: '',
       }));
+      setFileSctrName('');
+      setFilePersonalName('');
     }
 
     setStep(1);
     setErrorMessage('');
     setCreatedTicket(null);
   }, [isOpen, prefilledDate]);
+
+  // Manejo de carga de archivos PDF para protocolo SSOMA
+  const handleUploadPdf = async (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setErrorMessage('El documento adjunto debe estar en formato PDF (.pdf).');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMessage('El archivo excede el tamaño máximo permitido de 15MB.');
+      return;
+    }
+
+    setErrorMessage('');
+    if (type === 'sctr') {
+      setUploadingSctr(true);
+      try {
+        const res = await api.uploadArchivo(file);
+        handleInputChange('url_sctr_pdf', res.url);
+        setFileSctrName(file.name);
+      } catch (err) {
+        setErrorMessage(err.message || 'Error al subir el archivo SCTR.');
+      } finally {
+        setUploadingSctr(false);
+      }
+    } else if (type === 'personal') {
+      setUploadingPersonal(true);
+      try {
+        const res = await api.uploadArchivo(file);
+        handleInputChange('url_personal_externo_pdf', res.url);
+        setFilePersonalName(file.name);
+      } catch (err) {
+        setErrorMessage(err.message || 'Error al subir la lista de personal externo.');
+      } finally {
+        setUploadingPersonal(false);
+      }
+    }
+  };
+
+  const handleRemovePdf = (type) => {
+    if (type === 'sctr') {
+      handleInputChange('url_sctr_pdf', '');
+      setFileSctrName('');
+    } else if (type === 'personal') {
+      handleInputChange('url_personal_externo_pdf', '');
+      setFilePersonalName('');
+    }
+  };
 
   // RN-02 y RN-03: Cuando cambian las fechas, consultar stock dinámico
   useEffect(() => {
@@ -236,6 +307,19 @@ export default function ReservationModal({
     if (!step3Armed || submitting) {
       return;
     }
+
+    // Validación de protocolo SSOMA si la casilla está activa
+    if (formData.requiere_ssoma) {
+      if (!formData.url_sctr_pdf) {
+        setErrorMessage('Es obligatorio adjuntar el documento SCTR en formato PDF para requerimientos con personal o proveedores externos.');
+        return;
+      }
+      if (!formData.url_personal_externo_pdf) {
+        setErrorMessage('Es obligatorio adjuntar la Lista de Personal Externo en formato PDF.');
+        return;
+      }
+    }
+
     setErrorMessage('');
     setSubmitting(true);
 
@@ -254,7 +338,10 @@ export default function ReservationModal({
         fecha_fin: formData.fecha_fin,
         detalles: formData.detalles?.trim() || null,
         croquis_url: formData.croquis_url?.trim() || null,
-        protocolo_ssoma: formData.protocolo_ssoma,
+        protocolo_ssoma: Boolean(formData.protocolo_ssoma || formData.requiere_ssoma),
+        requiere_ssoma: Boolean(formData.requiere_ssoma),
+        url_sctr_pdf: formData.requiere_ssoma ? (formData.url_sctr_pdf?.trim() || null) : null,
+        url_personal_externo_pdf: formData.requiere_ssoma ? (formData.url_personal_externo_pdf?.trim() || null) : null,
         recursos: recursosArray,
       };
 
@@ -708,21 +795,172 @@ export default function ReservationModal({
                       </div>
                     </div>
 
-                    {/* Validación de Protocolo SSOMA (RF-04.3) */}
-                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        id="check-ssoma"
-                        checked={formData.protocolo_ssoma}
-                        onChange={(e) => handleInputChange('protocolo_ssoma', e.target.checked)}
-                        className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 mt-1 cursor-pointer"
-                      />
-                      <label htmlFor="check-ssoma" className="text-xs text-emerald-950 font-medium cursor-pointer">
-                        <span className="font-bold block text-emerald-900 text-sm">
-                          Validación de Protocolo SSOMA y Seguridad
-                        </span>
-                        Declaro que la actividad cumplirá con las normas de seguridad ocupacional, aforo permitido y directivas ambientales del campus.
-                      </label>
+                    {/* Validación y Protocolo SSOMA para Proveedores Externos */}
+                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="check-ssoma"
+                          checked={formData.requiere_ssoma}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            handleInputChange('requiere_ssoma', val);
+                            handleInputChange('protocolo_ssoma', val);
+                            if (!val) {
+                              setErrorMessage('');
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 mt-1 cursor-pointer"
+                        />
+                        <label htmlFor="check-ssoma" className="text-xs text-emerald-950 font-medium cursor-pointer flex-1">
+                          <span className="font-bold block text-emerald-900 text-sm">
+                            ¿Requiere proveedores o personal externo para su evento? (Protocolo SSOMA)
+                          </span>
+                          Active esta opción si participarán proveedores de servicios, empresas contratistas o personal externo. El área de SSOMA evaluará la documentación para dar su conformidad antes de la aprobación final.
+                        </label>
+                      </div>
+
+                      {/* Sección dinámica de carga de PDFs al activar la casilla */}
+                      {formData.requiere_ssoma && (
+                        <div className="pt-3 border-t border-emerald-200/80 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="flex items-center gap-2 text-xs text-emerald-900 font-bold">
+                            <ShieldAlert className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>Documentación obligatoria para el área de SSOMA (formato PDF, máx. 15MB):</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Input 1: SCTR en PDF */}
+                            <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-sm space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                  <FileText className="w-4 h-4 text-emerald-600" />
+                                  1. Documento SCTR (PDF) *
+                                </span>
+                                {formData.url_sctr_pdf && (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                                    Cargado ✓
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 leading-tight">
+                                Seguro Complementario de Trabajo de Riesgo vigente para el personal externo.
+                              </p>
+
+                              {formData.url_sctr_pdf ? (
+                                <div className="flex items-center justify-between gap-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-xs">
+                                  <span className="truncate font-medium text-emerald-950 flex-1" title={fileSctrName || 'SCTR_cargado.pdf'}>
+                                    📄 {fileSctrName || 'SCTR_cargado.pdf'}
+                                  </span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => window.open(api.getFileUrl(formData.url_sctr_pdf), '_blank')}
+                                      className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded transition-colors"
+                                      title="Ver documento en nueva pestaña"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePdf('sctr')}
+                                      className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition-colors"
+                                      title="Quitar archivo"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 rounded-xl cursor-pointer transition-all">
+                                  {uploadingSctr ? (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
+                                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                      <span>Subiendo SCTR...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
+                                      <UploadCloud className="w-4 h-4 text-emerald-600" />
+                                      <span>Adjuntar SCTR en PDF</span>
+                                    </div>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept=".pdf"
+                                    disabled={uploadingSctr}
+                                    onChange={(e) => handleUploadPdf(e, 'sctr')}
+                                    className="hidden"
+                                  />
+                                </label>
+                              )}
+                            </div>
+
+                            {/* Input 2: Lista de Personal Externo en PDF */}
+                            <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-sm space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                  <FileText className="w-4 h-4 text-emerald-600" />
+                                  2. Lista Personal Externo (PDF) *
+                                </span>
+                                {formData.url_personal_externo_pdf && (
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                                    Cargado ✓
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 leading-tight">
+                                Lista en PDF con nombres completos y DNI del personal externo que ingresará al campus.
+                              </p>
+
+                              {formData.url_personal_externo_pdf ? (
+                                <div className="flex items-center justify-between gap-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-xs">
+                                  <span className="truncate font-medium text-emerald-950 flex-1" title={filePersonalName || 'Personal_Externo.pdf'}>
+                                    📄 {filePersonalName || 'Personal_Externo.pdf'}
+                                  </span>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => window.open(api.getFileUrl(formData.url_personal_externo_pdf), '_blank')}
+                                      className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded transition-colors"
+                                      title="Ver documento en nueva pestaña"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePdf('personal')}
+                                      className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition-colors"
+                                      title="Quitar archivo"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 rounded-xl cursor-pointer transition-all">
+                                  {uploadingPersonal ? (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
+                                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                      <span>Subiendo Lista...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
+                                      <UploadCloud className="w-4 h-4 text-emerald-600" />
+                                      <span>Adjuntar Lista en PDF</span>
+                                    </div>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept=".pdf"
+                                    disabled={uploadingPersonal}
+                                    onChange={(e) => handleUploadPdf(e, 'personal')}
+                                    className="hidden"
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

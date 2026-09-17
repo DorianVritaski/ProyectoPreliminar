@@ -16,6 +16,9 @@ class SolicitudCreate(BaseModel):
     detalles: str | None = None
     croquis_url: str | None = None
     protocolo_ssoma: bool = False
+    requiere_ssoma: bool = False
+    url_sctr_pdf: str | None = None
+    url_personal_externo_pdf: str | None = None
     recursos: list[RecursoItemRequest] = []
 
     @field_validator("correo_solicitante")
@@ -52,6 +55,10 @@ class ConformidadUpdate(BaseModel):
     estado: str # CONFORME, OBSERVADO, PENDIENTE
     observacion: str | None = None
     usuario_admin_id: int | None = None
+    lineamientos_ssoma: str | None = None
+
+class LineamientosSSOMAUpdate(BaseModel):
+    lineamientos_ssoma: str
 
 class SolicitudRecursoDetalleResponse(BaseModel):
     recurso_id: int
@@ -77,11 +84,17 @@ class SolicitudResponse(BaseModel):
     detalles: str | None = None
     croquis_url: str | None = None
     protocolo_ssoma: bool
+    requiere_ssoma: bool = False
+    url_sctr_pdf: str | None = None
+    url_personal_externo_pdf: str | None = None
+    lineamientos_ssoma: str | None = None
     created_at: datetime
     recursos: list[SolicitudRecursoDetalleResponse] = []
     conformidades: list[ConformidadAreaResponse] = []
     requiere_conformidad_ti: bool = False
     conformidad_ti_aprobada: bool = True
+    requiere_conformidad_ssoma: bool = False
+    conformidad_ssoma_aprobada: bool = True
     todas_conformidades_aprobadas: bool = True
 
     class Config:

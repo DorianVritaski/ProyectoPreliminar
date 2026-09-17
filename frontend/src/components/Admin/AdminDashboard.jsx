@@ -25,15 +25,29 @@ import {
   ExternalLink,
   Image as ImageIcon,
   Info,
+  FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
+import SSOMADashboard from './SSOMADashboard';
 
 export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicData }) {
   const isAreaAdmin = Boolean(adminUser?.area_destino_id);
   const userAreaId = adminUser?.area_destino_id;
-  const userAreaNombre = adminUser?.area_destino_nombre || (userAreaId === 2 ? 'Tecnologías de la Información (TI)' : 'Área Operativa');
+  const isSSOMAAdmin = userAreaId === 3 || adminUser?.area_destino_nombre?.toUpperCase().includes('SSOMA');
+  const userAreaNombre = adminUser?.area_destino_nombre || (userAreaId === 2 ? 'Tecnologías de la Información (TI)' : (isSSOMAAdmin ? 'Seguridad, SSOMA y Vigilancia' : 'Área Operativa'));
   const isTIAdmin = userAreaId === 2;
+
+  if (isSSOMAAdmin) {
+    return (
+      <SSOMADashboard
+        adminUser={adminUser}
+        onLogout={onLogout}
+        onRefreshPublicData={onRefreshPublicData}
+      />
+    );
+  }
 
   const [activeSubTab, setActiveSubTab] = useState('solicitudes'); // 'solicitudes' | 'ambientes' | 'recursos' | 'areas_destino' | 'areas_solicitantes' | 'usuarios'
 
@@ -525,7 +539,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
         correo: newAdminData.correo.trim().toLowerCase(),
         password: newAdminData.password,
         activo: newAdminData.activo,
-        area_destino_id: newAdminData.tipo_rol === 'TI' ? 2 : null,
+        area_destino_id: newAdminData.tipo_rol === 'TI' ? 2 : (newAdminData.tipo_rol === 'SSOMA' ? 3 : null),
       };
       await api.adminCreateUsuario(payload);
       showFeedback(`Cuenta administradora creada para ${newAdminData.correo}.`);
@@ -844,6 +858,53 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                         <span>Abrir Croquis (Drive)</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
+                    </div>
+                  )}
+
+                  {/* Documentación SSOMA de Proveedores / Personal Externo */}
+                  {sol.requiere_ssoma && (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-xs flex flex-wrap items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2 text-emerald-950 font-bold">
+                        <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Protocolo SSOMA (Proveedores / Personal Externo):</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {sol.url_sctr_pdf && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(api.getFileUrl(sol.url_sctr_pdf), '_blank')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Ver SCTR (PDF)</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                        {sol.url_personal_externo_pdf && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(api.getFileUrl(sol.url_personal_externo_pdf), '_blank')}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Ver Personal Externo (PDF)</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lineamientos y Normas de Seguridad (SSOMA) */}
+                  {sol.lineamientos_ssoma && (
+                    <div className="p-3.5 bg-emerald-50/80 border border-emerald-300/90 rounded-2xl text-xs space-y-1.5 text-emerald-950">
+                      <div className="flex items-center gap-2 font-bold text-emerald-900">
+                        <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>Lineamientos y Normas de Seguridad (SSOMA):</span>
+                      </div>
+                      <p className="text-emerald-900/90 whitespace-pre-line leading-relaxed font-medium pl-6">
+                        {sol.lineamientos_ssoma}
+                      </p>
                     </div>
                   )}
 
@@ -1910,13 +1971,14 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                   setNewAdminData((prev) => ({
                     ...prev,
                     tipo_rol: val,
-                    area_destino_id: val === 'TI' ? 2 : null,
+                    area_destino_id: val === 'TI' ? 2 : (val === 'SSOMA' ? 3 : null),
                   }));
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
               >
                 <option value="GENERAL">Jefatura de Operaciones (Principal - Servicios Generales y Aprobación Final)</option>
                 <option value="TI">Administrador de Área: Tecnologías de la Información (TI)</option>
+                <option value="SSOMA">Supervisor de Área: Seguridad, SSOMA y Vigilancia</option>
               </select>
             </div>
 

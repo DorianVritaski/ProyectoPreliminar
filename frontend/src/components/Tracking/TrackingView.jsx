@@ -16,6 +16,9 @@ import {
   ExternalLink,
   Image as ImageIcon,
   AlertTriangle,
+  Info,
+  FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
@@ -296,28 +299,62 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                         ))}
                       </div>
 
-                      {/* Observaciones técnicas u operativas emitidas por áreas (ej. TI) */}
+                      {/* Observaciones técnicas u operativas emitidas por áreas (ej. TI, SSOMA) */}
                       {confs.some((c) => c.observacion && c.area_destino_id !== 1) && (
                         <div className="space-y-2 pt-2 border-t border-slate-200/80">
-                          {confs.filter((c) => c.observacion && c.area_destino_id !== 1).map((c) => (
-                            <div
-                              key={`obs-${c.id || c.area_destino_id}`}
-                              className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs space-y-1.5 text-rose-900"
-                            >
-                              <div className="flex items-center gap-1.5 font-bold text-rose-900">
-                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                                <span>Observación técnica de {c.area_destino_nombre}:</span>
-                                {c.aprobado_por_nombre && (
-                                  <span className="text-[11px] font-normal text-rose-700">
-                                    — registrado por {c.aprobado_por_nombre}
+                          {confs.filter((c) => c.observacion && c.area_destino_id !== 1).map((c) => {
+                            const isConforme = c.estado === 'CONFORME';
+                            return (
+                              <div
+                                key={`obs-${c.id || c.area_destino_id}`}
+                                className={`p-3 rounded-xl text-xs space-y-1.5 border transition-all ${
+                                  isConforme
+                                    ? 'bg-amber-50/80 border-amber-200 text-amber-950'
+                                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                                }`}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-1.5 font-bold">
+                                  <div className="flex items-center gap-1.5">
+                                    {isConforme ? (
+                                      <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                    ) : (
+                                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                    )}
+                                    <span>
+                                      {isConforme
+                                        ? `Nota / Observación registrada por ${c.area_destino_nombre}:`
+                                        : `Observación técnica de ${c.area_destino_nombre}:`}
+                                    </span>
+                                    {c.aprobado_por_nombre && (
+                                      <span
+                                        className={`text-[11px] font-normal ${
+                                          isConforme ? 'text-amber-700' : 'text-rose-700'
+                                        }`}
+                                      >
+                                        — {c.aprobado_por_nombre}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                                      isConforme
+                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border-rose-300'
+                                    }`}
+                                  >
+                                    {isConforme ? 'Conformidad Otorgada ✓' : 'Observación Activa'}
                                   </span>
-                                )}
+                                </div>
+                                <p
+                                  className={`whitespace-pre-line leading-relaxed font-medium pl-5 ${
+                                    isConforme ? 'text-amber-900' : 'text-rose-800'
+                                  }`}
+                                >
+                                  {c.observacion}
+                                </p>
                               </div>
-                              <p className="text-rose-800 whitespace-pre-line leading-relaxed font-medium pl-5">
-                                {c.observacion}
-                              </p>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -352,6 +389,53 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                       <span>Abrir en Google Drive</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
+                  </div>
+                )}
+
+                {/* Documentación SSOMA de Proveedores / Personal Externo */}
+                {sol.requiere_ssoma && (
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 text-emerald-950 font-bold">
+                      <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Protocolo SSOMA (Proveedores / Personal Externo):</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {sol.url_sctr_pdf && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(api.getFileUrl(sol.url_sctr_pdf), '_blank')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ver SCTR (PDF)</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      )}
+                      {sol.url_personal_externo_pdf && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(api.getFileUrl(sol.url_personal_externo_pdf), '_blank')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Ver Personal Externo (PDF)</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lineamientos y Normas de Seguridad (SSOMA) */}
+                {sol.lineamientos_ssoma && (
+                  <div className="p-4 bg-emerald-50/80 border border-emerald-300 rounded-2xl text-xs space-y-2 text-emerald-950 shadow-sm">
+                    <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                      <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+                      <span>Lineamientos y Normas de Seguridad para el Evento (SSOMA):</span>
+                    </div>
+                    <p className="text-emerald-950 whitespace-pre-line leading-relaxed font-medium pl-7 text-xs">
+                      {sol.lineamientos_ssoma}
+                    </p>
                   </div>
                 )}
 
