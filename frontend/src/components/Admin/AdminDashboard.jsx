@@ -114,10 +114,10 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
     nombre: '',
     correo: '',
     password: '',
-    tipo_rol: 'GENERAL', // 'GENERAL' | 'TI'
     area_destino_id: null,
     activo: true,
   });
+  const [editingAdmin, setEditingAdmin] = useState(null); // { id, nombre, correo, area_destino_id, password, activo }
 
   // Feedback Toast
   const [feedbackMessage, setFeedbackMessage] = useState({ text: '', type: '' });
@@ -539,12 +539,12 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
         correo: newAdminData.correo.trim().toLowerCase(),
         password: newAdminData.password,
         activo: newAdminData.activo,
-        area_destino_id: newAdminData.tipo_rol === 'TI' ? 2 : (newAdminData.tipo_rol === 'SSOMA' ? 3 : null),
+        area_destino_id: newAdminData.area_destino_id ? Number(newAdminData.area_destino_id) : null,
       };
       await api.adminCreateUsuario(payload);
       showFeedback(`Cuenta administradora creada para ${newAdminData.correo}.`);
       setIsNewAdminOpen(false);
-      setNewAdminData({ nombre: '', correo: '', password: '', tipo_rol: 'GENERAL', area_destino_id: null, activo: true });
+      setNewAdminData({ nombre: '', correo: '', password: '', area_destino_id: null, activo: true });
       loadUsuariosAdmin();
     } catch (err) {
       showFeedback(err.message, 'error');
@@ -569,6 +569,42 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
       loadUsuariosAdmin();
     } catch (err) {
       showFeedback(err.message, 'error');
+    }
+  };
+
+  const handleOpenEditAdmin = (user) => {
+    setEditingAdmin({
+      id: user.id,
+      nombre: user.nombre,
+      correo: user.correo,
+      area_destino_id: user.area_destino_id ?? null,
+      password: '',
+      activo: Boolean(user.activo),
+    });
+  };
+
+  const handleUpdateAdmin = async (e) => {
+    e.preventDefault();
+    if (!editingAdmin) return;
+
+    try {
+      const payload = {
+        nombre: editingAdmin.nombre.trim(),
+        correo: editingAdmin.correo.trim().toLowerCase(),
+        activo: editingAdmin.activo,
+        area_destino_id: editingAdmin.area_destino_id ? Number(editingAdmin.area_destino_id) : null,
+      };
+
+      if (editingAdmin.password && editingAdmin.password.trim()) {
+        payload.password = editingAdmin.password.trim();
+      }
+
+      await api.adminUpdateUsuario(editingAdmin.id, payload);
+      showFeedback(`Cuenta administradora de '${editingAdmin.nombre}' actualizada exitosamente.`);
+      setEditingAdmin(null);
+      loadUsuariosAdmin();
+    } catch (err) {
+      showFeedback(err.message || 'Error al actualizar cuenta administradora.', 'error');
     }
   };
 
@@ -1547,7 +1583,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                   <th className="p-3">ID</th>
                   <th className="p-3">Nombre</th>
                   <th className="p-3">Correo Institucional</th>
-                  <th className="p-3">Rol / Alcance</th>
+                  <th className="p-3">Área Operativa</th>
                   <th className="p-3">Estado</th>
                   <th className="p-3">Fecha de Alta</th>
                   <th className="p-3 text-right">Acciones</th>
@@ -1560,15 +1596,37 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     <td className="p-3 font-bold text-slate-800 text-sm">{user.nombre}</td>
                     <td className="p-3 font-mono text-slate-600">{user.correo}</td>
                     <td className="p-3">
-                      {user.area_destino_id === 2 || user.area_destino_nombre?.includes('TI') ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                          Admin TI
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                          Jefatura de Operaciones
-                        </span>
-                      )}
+                      {(() => {
+                        const areaName =
+                          user.area_destino_nombre ||
+                          (user.area_destino_id
+                            ? areasDestino.find((a) => a.id === user.area_destino_id)?.nombre
+                            : null) ||
+                          'Jefatura de Operaciones (General)';
+                        const isGeneral = !user.area_destino_id;
+                        const isTI = user.area_destino_id === 2 || areaName.toUpperCase().includes('TI');
+                        const isSSOMA =
+                          user.area_destino_id === 3 ||
+                          areaName.toUpperCase().includes('SSOMA') ||
+                          areaName.toUpperCase().includes('SEGURIDAD');
+
+                        let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
+                        if (isGeneral) badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
+                        else if (isTI) badgeColor = 'bg-blue-100 text-blue-800 border-blue-200';
+                        else if (isSSOMA) badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
+                        else badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border w-fit ${badgeColor}`}>
+                              {areaName}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {isGeneral ? 'Aprobación Central & Serv. Generales' : 'Responsable de Área Operativa'}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-3">
                       <span
@@ -1583,6 +1641,13 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     <td className="p-3 text-slate-400">{formatDateShort(user.created_at)}</td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEditAdmin(user)}
+                          className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          title="Editar cuenta de administrador"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleToggleAdminActivo(user)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${user.activo
@@ -1963,23 +2028,30 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Tipo de Rol / Alcance</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Área Operativa Asignada
+              </label>
               <select
-                value={newAdminData.tipo_rol}
+                value={newAdminData.area_destino_id ?? ''}
                 onChange={(e) => {
                   const val = e.target.value;
                   setNewAdminData((prev) => ({
                     ...prev,
-                    tipo_rol: val,
-                    area_destino_id: val === 'TI' ? 2 : (val === 'SSOMA' ? 3 : null),
+                    area_destino_id: val ? Number(val) : null,
                   }));
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
               >
-                <option value="GENERAL">Jefatura de Operaciones (Principal - Servicios Generales y Aprobación Final)</option>
-                <option value="TI">Administrador de Área: Tecnologías de la Información (TI)</option>
-                <option value="SSOMA">Supervisor de Área: Seguridad, SSOMA y Vigilancia</option>
+                <option value="">Jefatura de Operaciones (General - Aprobación Central)</option>
+                {areasDestino.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.nombre} {!area.activa ? '(Inactiva)' : ''}
+                  </option>
+                ))}
               </select>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Seleccione el área operativa que administrará esta cuenta
+              </span>
             </div>
 
             <div>
@@ -2001,6 +2073,121 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
               </button>
               <button type="submit" className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md">
                 Crear Cuenta
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal: Editar Administrador */}
+      {editingAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in">
+          <form onSubmit={handleUpdateAdmin} className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Editar Administrador</h3>
+                  <p className="text-[11px] text-slate-500 font-mono">ID: #{editingAdmin.id}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setEditingAdmin(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo</label>
+              <input
+                type="text"
+                required
+                value={editingAdmin.nombre}
+                onChange={(e) => setEditingAdmin((prev) => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Ej. Ing. Carlos Mendoza"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Correo Institucional</label>
+              <input
+                type="email"
+                required
+                value={editingAdmin.correo}
+                onChange={(e) => setEditingAdmin((prev) => ({ ...prev, correo: e.target.value }))}
+                placeholder="ejemplo@continental.edu.pe"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Debe pertenecer al dominio @continental.edu.pe
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Área Operativa Asignada
+              </label>
+              <select
+                value={editingAdmin.area_destino_id ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEditingAdmin((prev) => ({
+                    ...prev,
+                    area_destino_id: val ? Number(val) : null,
+                  }));
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              >
+                <option value="">Jefatura de Operaciones (General - Aprobación Central)</option>
+                {areasDestino.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.nombre} {!area.activa ? '(Inactiva)' : ''}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Seleccione el área operativa que administrará esta cuenta
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Nueva Contraseña <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
+              <input
+                type="password"
+                minLength={6}
+                value={editingAdmin.password}
+                onChange={(e) => setEditingAdmin((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Dejar en blanco para mantener la actual"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Ingrese mínimo 6 caracteres solo si desea cambiar la contraseña
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="edit-admin-activo"
+                checked={editingAdmin.activo}
+                onChange={(e) => setEditingAdmin((prev) => ({ ...prev, activo: e.target.checked }))}
+                className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4"
+              />
+              <label htmlFor="edit-admin-activo" className="text-xs text-slate-700 font-semibold cursor-pointer">
+                Cuenta activa y habilitada para iniciar sesión
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setEditingAdmin(null)} className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
+                Cancelar
+              </button>
+              <button type="submit" className="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md">
+                Guardar Cambios
               </button>
             </div>
           </form>

@@ -21,9 +21,20 @@ class UsuarioAdminCreate(UsuarioAdminBase):
 
 class UsuarioAdminUpdate(BaseModel):
     nombre: str | None = None
+    correo: str | None = None
     activo: bool | None = None
     password: str | None = Field(default=None, min_length=6)
     area_destino_id: int | None = None
+
+    @field_validator("correo")
+    @classmethod
+    def validate_correo_update(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        clean_email = v.strip().lower()
+        if not re.match(r"^[\w\.-]+@([\w-]+\.)*continental\.edu\.pe$", clean_email) and not clean_email.endswith("@continental.edu.pe"):
+            raise ValueError("El correo de administración debe pertenecer al dominio institucional (@continental.edu.pe)")
+        return clean_email
 
 class UsuarioAdminResponse(UsuarioAdminBase):
     id: int

@@ -636,6 +636,12 @@ def actualizar_usuario_admin(id: int, body: UsuarioAdminUpdate, db: Session = De
 
     if body.nombre is not None:
         usuario.nombre = body.nombre.strip()
+    if body.correo is not None:
+        correo_clean = body.correo.strip().lower()
+        existente = db.query(UsuarioAdmin).filter(UsuarioAdmin.correo == correo_clean, UsuarioAdmin.id != id).first()
+        if existente:
+            raise HTTPException(status_code=400, detail=f"El correo '{correo_clean}' ya está registrado en otra cuenta administradora.")
+        usuario.correo = correo_clean
     if body.activo is not None:
         # Prevenir desactivar el último admin
         if not body.activo:
