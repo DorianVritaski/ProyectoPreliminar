@@ -363,6 +363,26 @@ export default function ReservationModal({
     }
   };
 
+  const selectedAmbiente = ambientes?.find((amb) => String(amb.id) === String(formData.ambiente_id));
+  const ambNombreNorm = selectedAmbiente?.nombre
+    ? selectedAmbiente.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    : '';
+
+  const isProgramacionAcademica = Boolean(
+    selectedAmbiente && (
+      (ambNombreNorm.includes('auditorio') && !ambNombreNorm.includes('area verde') && !ambNombreNorm.includes('lado')) ||
+      ambNombreNorm.includes('audiencia') ||
+      ambNombreNorm.includes('aula')
+    )
+  );
+
+  const isHubInformacion = Boolean(
+    selectedAmbiente && (
+      ((ambNombreNorm.includes('4to piso') || ambNombreNorm.includes('cuarto piso') || ambNombreNorm.includes('piso 4')) && ambNombreNorm.includes('f')) ||
+      ambNombreNorm.includes('hub')
+    )
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
@@ -602,6 +622,52 @@ export default function ReservationModal({
                           </option>
                         ))}
                       </select>
+
+                      {/* Notificación visual: Ambientes gestionados por Programación Académica */}
+                      {isProgramacionAcademica && (
+                        <div className="mt-3 p-3.5 bg-amber-50/95 border border-amber-300/80 rounded-2xl text-amber-950 text-xs flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="p-1.5 bg-amber-100 border border-amber-300 rounded-xl text-amber-700 shrink-0 mt-0.5">
+                            <Info className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1 flex-1">
+                            <p className="font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                              <span>Gestión Exclusiva: Programación Académica</span>
+                            </p>
+                            <p className="text-amber-800 leading-relaxed text-[11px]">
+                              Los ambientes como <strong>Auditorio</strong>, <strong>Sala de Audiencia</strong> y <strong>Aulas</strong> son gestionados directamente con el área de <strong>Programación Académica</strong>.
+                            </p>
+                            <div className="text-amber-900 font-medium text-[11px] bg-amber-100/70 p-2.5 rounded-xl border border-amber-200/80 mt-1 flex items-start gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                              <span>
+                                Debe comunicarse previamente con el área respectiva (<strong>Programación Académica</strong>) para gestionar su separación antes de generar esta solicitud.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Notificación visual: Ambiente gestionado por Hub de Información */}
+                      {isHubInformacion && (
+                        <div className="mt-3 p-3.5 bg-blue-50/95 border border-blue-300/80 rounded-2xl text-blue-950 text-xs flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="p-1.5 bg-blue-100 border border-blue-300 rounded-xl text-blue-700 shrink-0 mt-0.5">
+                            <Info className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1 flex-1">
+                            <p className="font-bold text-blue-950 text-xs flex items-center gap-1.5">
+                              <span>Gestión Exclusiva: Hub de Información</span>
+                            </p>
+                            <p className="text-blue-800 leading-relaxed text-[11px]">
+                              El ambiente <strong>4to piso del Pabellón F</strong> se gestiona directamente con el área de <strong>Hub de Información</strong>.
+                            </p>
+                            <div className="text-blue-900 font-medium text-[11px] bg-blue-100/70 p-2.5 rounded-xl border border-blue-200/80 mt-1 flex items-start gap-1.5">
+                              <Info className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                              <span>
+                                Debe comunicarse previamente con el área respectiva (<strong>Hub de Información</strong>) para gestionar su separación antes de generar esta solicitud.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
