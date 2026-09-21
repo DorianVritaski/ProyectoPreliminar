@@ -15,6 +15,8 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
       setUsername('coordinador.ti@continental.edu.pe');
     } else if (role === 'ssoma') {
       setUsername('ssoma@continental.edu.pe');
+    } else if (role === 'seguridad') {
+      setUsername('seguridad@continental.edu.pe');
     } else {
       setUsername('operaciones@continental.edu.pe');
     }
@@ -103,12 +105,12 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
             />
           </div>
 
-          {/* Botones rápidos Demo por Rol */}
+          {/* Botones rápidos Demo por las 4 Áreas Operativas */}
           <div className="space-y-1.5 pt-1">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
-              Cuentas Demo de Acceso Rápido:
+              Cuentas Demo de las 4 Áreas Operativas:
             </span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               <button
                 type="button"
                 onClick={() => handleFillDemo('operaciones')}
@@ -119,16 +121,23 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
               <button
                 type="button"
                 onClick={() => handleFillDemo('ti')}
-                className="py-1.5 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] text-slate-700 font-bold transition-colors text-center"
+                className="py-1.5 px-2 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-[11px] text-blue-800 font-bold transition-colors text-center"
               >
                 💻 Admin TI
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFillDemo('seguridad')}
+                className="py-1.5 px-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-[11px] text-amber-900 font-bold transition-colors text-center"
+              >
+                🛡️ Seguridad
               </button>
               <button
                 type="button"
                 onClick={() => handleFillDemo('ssoma')}
                 className="py-1.5 px-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-[11px] text-emerald-800 font-bold transition-colors text-center"
               >
-                🛡️ SSOMA
+                🌱 SSOMA
               </button>
             </div>
           </div>

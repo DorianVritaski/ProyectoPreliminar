@@ -31,17 +31,29 @@ import {
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort, formatTime } from '../../utils/formatters';
 import SSOMADashboard from './SSOMADashboard';
+import SeguridadDashboard from './SeguridadDashboard';
 
 export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicData }) {
   const isAreaAdmin = Boolean(adminUser?.area_destino_id);
   const userAreaId = adminUser?.area_destino_id;
-  const isSSOMAAdmin = userAreaId === 3 || adminUser?.area_destino_nombre?.toUpperCase().includes('SSOMA');
-  const userAreaNombre = adminUser?.area_destino_nombre || (userAreaId === 2 ? 'Tecnologías de la Información (TI)' : (isSSOMAAdmin ? 'Seguridad, SSOMA y Vigilancia' : 'Área Operativa'));
+  const isSSOMAAdmin = userAreaId === 7 || adminUser?.area_destino_nombre?.toUpperCase().includes('SSOMA');
+  const isSeguridadAdmin = userAreaId === 3 || adminUser?.area_destino_nombre?.toUpperCase().includes('SEGURIDAD') || adminUser?.area_destino_nombre?.toUpperCase().includes('VIGILANCIA');
+  const userAreaNombre = adminUser?.area_destino_nombre || (userAreaId === 2 ? 'Tecnologías de la Información (TI)' : (isSSOMAAdmin ? 'SSOMA' : (isSeguridadAdmin ? 'Seguridad Interna y Vigilancia' : 'Área Operativa')));
   const isTIAdmin = userAreaId === 2;
 
   if (isSSOMAAdmin) {
     return (
       <SSOMADashboard
+        adminUser={adminUser}
+        onLogout={onLogout}
+        onRefreshPublicData={onRefreshPublicData}
+      />
+    );
+  }
+
+  if (isSeguridadAdmin) {
+    return (
+      <SeguridadDashboard
         adminUser={adminUser}
         onLogout={onLogout}
         onRefreshPublicData={onRefreshPublicData}
@@ -1605,15 +1617,14 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                           'Jefatura de Operaciones (General)';
                         const isGeneral = !user.area_destino_id;
                         const isTI = user.area_destino_id === 2 || areaName.toUpperCase().includes('TI');
-                        const isSSOMA =
-                          user.area_destino_id === 3 ||
-                          areaName.toUpperCase().includes('SSOMA') ||
-                          areaName.toUpperCase().includes('SEGURIDAD');
+                        const isSSOMA = user.area_destino_id === 7 || areaName.toUpperCase().includes('SSOMA');
+                        const isSeguridad = user.area_destino_id === 3 || areaName.toUpperCase().includes('SEGURIDAD') || areaName.toUpperCase().includes('VIGILANCIA');
 
                         let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
                         if (isGeneral) badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
                         else if (isTI) badgeColor = 'bg-blue-100 text-blue-800 border-blue-200';
                         else if (isSSOMA) badgeColor = 'bg-amber-100 text-amber-800 border-amber-200';
+                        else if (isSeguridad) badgeColor = 'bg-cyan-100 text-cyan-800 border-cyan-200';
                         else badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-200';
 
                         return (

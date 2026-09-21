@@ -72,12 +72,12 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
     loadSolicitudesSSOMA();
   }, []);
 
-  // Obtener la conformidad de SSOMA (área 3) para una solicitud dada
+  // Obtener la conformidad de SSOMA (área 7 o fallback nombre) para una solicitud dada
   const getSSOMAConformidad = (sol) => {
     if (!sol.conformidades) return null;
     return (
       sol.conformidades.find(
-        (c) => c.area_destino_id === 3 || c.area_destino_nombre?.toUpperCase().includes('SSOMA')
+        (c) => c.area_destino_id === 7 || c.area_destino_nombre?.toUpperCase().includes('SSOMA') || c.area_destino_id === 3
       ) || null
     );
   };
@@ -86,11 +86,12 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
   const handleGiveConformidadSSOMA = async (sol) => {
     const conf = getSSOMAConformidad(sol);
     const lineamientos = (localLineamientos[sol.id] || '').trim();
+    const targetAreaId = conf?.area_destino_id || (adminUser?.area_destino_id === 3 ? 7 : adminUser?.area_destino_id) || 7;
 
     setActionInProgress(sol.id);
     try {
       // Registrar conformidad técnica (CONFORME) y guardar lineamientos
-      await api.adminUpdateConformidad(sol.id, 3, {
+      await api.adminUpdateConformidad(sol.id, targetAreaId, {
         estado: 'CONFORME',
         usuario_admin_id: adminUser?.id,
         lineamientos_ssoma: lineamientos || null,
@@ -136,10 +137,11 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
     const solId = observingSol.id;
     const conf = getSSOMAConformidad(observingSol);
     const lineamientos = (localLineamientos[solId] || '').trim();
+    const targetAreaId = conf?.area_destino_id || (adminUser?.area_destino_id === 3 ? 7 : adminUser?.area_destino_id) || 7;
 
     setActionInProgress(solId);
     try {
-      await api.adminUpdateConformidad(solId, 3, {
+      await api.adminUpdateConformidad(solId, targetAreaId, {
         estado: 'OBSERVADO',
         observacion: observacionTexto.trim(),
         usuario_admin_id: adminUser?.id,

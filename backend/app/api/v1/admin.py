@@ -125,20 +125,39 @@ def admin_login(body: AdminLoginRequest, db: Session = Depends(get_db)):
 def listar_todas_las_solicitudes(
     estado: str | None = Query(None, description="Filtro opcional por estado: PENDIENTE, APROBADO, RECHAZADO"),
     area_destino_id: int | None = Query(None, description="Filtro para sub-administradores de área (ej. 2 para TI)"),
+    fecha: str | None = Query(None, description="Filtro opcional por fecha exacta (YYYY-MM-DD)"),
+    ambiente_id: int | None = Query(None, description="Filtro opcional por ambiente"),
+    search: str | None = Query(None, description="Búsqueda por ticket, correo o detalles del evento"),
     db: Session = Depends(get_db)
 ):
     query = db.query(Solicitud).order_by(Solicitud.created_at.desc())
-    if estado:
+    if estado and estado.upper() not in ["TODAS", "TODOS", "ALL"]:
         query = query.filter(Solicitud.estado == estado.upper())
     
     if area_destino_id is not None:
-        # Filtrar solicitudes que requieran insumos de esta área operativa
-        query = query.filter(
-            Solicitud.id.in_(
-                db.query(SolicitudConformidad.solicitud_id).filter(
-                    SolicitudConformidad.area_destino_id == area_destino_id
+        # Área 3 (Seguridad Interna y Vigilancia) es un panel de monitoreo general que visualiza todas las solicitudes
+        if area_destino_id != 3:
+            query = query.filter(
+                Solicitud.id.in_(
+                    db.query(SolicitudConformidad.solicitud_id).filter(
+                        SolicitudConformidad.area_destino_id == area_destino_id
+                    )
                 )
             )
+
+    if ambiente_id is not None:
+        query = query.filter(Solicitud.ambiente_id == ambiente_id)
+
+    if fecha:
+        from sqlalchemy import func
+        query = query.filter(func.date(Solicitud.fecha_inicio) == fecha)
+
+    if search and search.strip():
+        term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            (Solicitud.codigo_ticket.ilike(term)) |
+            (Solicitud.correo_solicitante.ilike(term)) |
+            (Solicitud.detalles.ilike(term))
         )
 
     solicitudes = query.all()
@@ -156,6 +175,12 @@ def actualizar_conformidad_solicitud(
     Permite al Administrador de Área (ej. TI) registrar su Conformidad técnica (CONFORME)
     o indicar que el requerimiento está OBSERVADO.
     """
+    if area_destino_id == 3:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El área de Seguridad Interna y Vigilancia tiene acceso exclusivamente de monitoreo y consulta en campo (Solo Lectura)."
+        )
+
     solicitud = db.query(Solicitud).filter(Solicitud.id == id).first()
     if not solicitud:
         raise HTTPException(status_code=404, detail=f"Solicitud con ID {id} no encontrada.")
@@ -247,8 +272,9 @@ def actualizar_estado_solicitud_admin(
 
         pendientes = []
         for c in conformidades:
-            # Jefatura de Operaciones administra Servicios Generales y Mantenimiento (área 1); no requiere auto-conformidad
-            if c.area_destino_id == 1:
+            # Jefatura de Operaciones administra Servicios Generales y Mantenimiento (área 1);
+            # Seguridad Interna y Vigilancia (área 3) es exclusivamente panel de consulta en campo.
+            if c.area_destino_id in (1, 3):
                 continue
             if c.estado != "CONFORME":
                 nom = c.area_destino.nombre if c.area_destino else f"Área #{c.area_destino_id}"

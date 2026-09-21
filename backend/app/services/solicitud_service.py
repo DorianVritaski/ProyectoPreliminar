@@ -121,8 +121,9 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
     # 6. Insertar recursos solicitados y registrar áreas operativas involucradas
     areas_involucradas = set()
     if data.requiere_ssoma:
-        # Área 3: Seguridad, SSOMA y Vigilancia
-        areas_involucradas.add(3)
+        # Área de SSOMA (Seguridad, Salud Ocupacional y Medio Ambiente)
+        ssoma_area = db.query(AreaDestino).filter(AreaDestino.nombre.ilike("%SSOMA%")).first()
+        areas_involucradas.add(ssoma_area.id if ssoma_area else 7)
 
     for req in data.recursos:
         sol_rec = SolicitudRecurso(
@@ -133,9 +134,10 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         db.add(sol_rec)
         rec_obj = db.query(Recurso).filter(Recurso.id == req.recurso_id).first()
         if rec_obj and rec_obj.area_destino_id:
-            # Jefatura de Operaciones administra directamente Servicios Generales y Mantenimiento (área 1).
-            # Por tanto, no requiere pre-conformidad operativa separada.
-            if rec_obj.area_destino_id != 1:
+            # Jefatura de Operaciones administra Servicios Generales y Mantenimiento (área 1).
+            # Seguridad Interna y Vigilancia (área 3) es un panel de monitoreo y control en garita (Solo Lectura).
+            # Por tanto, no requieren registro de pre-conformidad técnica separada.
+            if rec_obj.area_destino_id not in (1, 3):
                 areas_involucradas.add(rec_obj.area_destino_id)
 
     # 7. Crear automáticamente registros de conformidad en estado PENDIENTE
@@ -196,8 +198,8 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
     todas_ok = True
 
     for c in conformidades_db:
-        # Excluir Servicios Generales y Mantenimiento (área 1), administrada por la propia Jefatura
-        if c.area_destino_id == 1:
+        # Excluir Servicios Generales (área 1) y Seguridad Interna (área 3, solo lectura/garita)
+        if c.area_destino_id in (1, 3):
             continue
 
         area_nom = c.area_destino.nombre if c.area_destino else f"Área #{c.area_destino_id}"
@@ -222,7 +224,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
             if c.estado != "CONFORME":
                 conformidad_ti_ok = False
 
-        is_ssoma = (c.area_destino_id == 3) or ("SSOMA" in area_nom.upper())
+        is_ssoma = (c.area_destino_id in (3, 7)) or ("SSOMA" in area_nom.upper())
         if is_ssoma:
             requiere_ssoma_conf = True
             if c.estado != "CONFORME":

@@ -75,12 +75,15 @@ export const api = {
     }),
 
   // RF-05.1: Gestión de Solicitudes y Workflow de Conformidades
-  adminGetSolicitudes: (estado, area_destino_id = null) => {
+  adminGetSolicitudes: (estado, area_destino_id = null, options = {}) => {
     const params = new URLSearchParams();
     if (estado) params.append('estado', estado);
     if (area_destino_id !== null && area_destino_id !== undefined) {
       params.append('area_destino_id', area_destino_id);
     }
+    if (options.fecha) params.append('fecha', options.fecha);
+    if (options.ambiente_id) params.append('ambiente_id', options.ambiente_id);
+    if (options.search) params.append('search', options.search);
     const query = params.toString() ? `?${params.toString()}` : '';
     return fetchJSON(`/admin/solicitudes${query}`);
   },
