@@ -31,6 +31,15 @@ async function fetchJSON(endpoint, options = {}) {
 export const api = {
   // Ambientes Públicos
   getAmbientes: () => fetchJSON('/ambientes'),
+  verificarHorarioAmbiente: (ambienteId, fechaInicio, fechaFin, excluirId = null, bufferMinutos = 60) => {
+    const params = new URLSearchParams({
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      buffer_minutos: bufferMinutos,
+    });
+    if (excluirId) params.append('solicitud_id_excluir', excluirId);
+    return fetchJSON(`/ambientes/${ambienteId}/verificar-horario?${params.toString()}`);
+  },
 
   // Áreas Solicitantes Públicas (RF-01.5)
   getAreasSolicitantes: () => fetchJSON('/areas-solicitantes'),

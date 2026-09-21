@@ -61,15 +61,18 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         fecha_fin=data.fecha_fin
     )
     if conflicto_ambiente:
-        ini_str = conflicto_ambiente.fecha_inicio.strftime("%H:%M")
-        fin_str = conflicto_ambiente.fecha_fin.strftime("%H:%M del %d/%m/%Y")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
+        mensaje_detalle = getattr(conflicto_ambiente, "mensaje_conflicto", None)
+        if not mensaje_detalle:
+            ini_str = conflicto_ambiente.fecha_inicio.strftime("%H:%M")
+            fin_str = conflicto_ambiente.fecha_fin.strftime("%H:%M del %d/%m/%Y")
+            mensaje_detalle = (
                 f"Conflicto de horario en '{ambiente.nombre}'. "
                 f"Ya existe una solicitud ({conflicto_ambiente.codigo_ticket}) "
                 f"en estado {conflicto_ambiente.estado} desde las {ini_str} hasta las {fin_str}."
             )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=mensaje_detalle
         )
 
     # 4. RN-02 y RN-03: Validar disponibilidad de stock de cada recurso solicitado

@@ -21,6 +21,7 @@ import {
   UploadCloud,
   Trash2,
   Eye,
+  Clock,
 } from 'lucide-react';
 import { api } from '../../api/client';
 
@@ -67,6 +68,10 @@ export default function ReservationModal({
   const [uploadingPersonal, setUploadingPersonal] = useState(false);
   const [fileSctrName, setFileSctrName] = useState('');
   const [filePersonalName, setFilePersonalName] = useState('');
+
+  // Validación de disponibilidad e intervalo logístico de 1 hora
+  const [verificandoHorario, setVerificandoHorario] = useState(false);
+  const [resultadoHorario, setResultadoHorario] = useState(null);
 
   // Prevenir envío involuntario o por rebote de clic al entrar al paso 3
   useEffect(() => {
@@ -129,6 +134,7 @@ export default function ReservationModal({
     setStep(1);
     setErrorMessage('');
     setCreatedTicket(null);
+    setResultadoHorario(null);
   }, [isOpen, prefilledDate]);
 
   // Manejo de carga de archivos PDF para protocolo SSOMA
@@ -219,6 +225,40 @@ export default function ReservationModal({
       });
   }, [formData.fecha_inicio, formData.fecha_fin]);
 
+  // RN-01: Verificación en tiempo real del ambiente y cumplimiento del intervalo mínimo de 1 hora
+  useEffect(() => {
+    if (!formData.ambiente_id || !formData.fecha_inicio || !formData.fecha_fin) {
+      setResultadoHorario(null);
+      return;
+    }
+    if (new Date(formData.fecha_fin) <= new Date(formData.fecha_inicio)) {
+      setResultadoHorario(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setVerificandoHorario(true);
+
+    api.verificarHorarioAmbiente(formData.ambiente_id, formData.fecha_inicio, formData.fecha_fin)
+      .then((res) => {
+        if (!isCancelled) {
+          setResultadoHorario(res);
+        }
+      })
+      .catch((err) => {
+        console.error('Error verificando horario e intervalo de ambiente:', err);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setVerificandoHorario(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData.ambiente_id, formData.fecha_inicio, formData.fecha_fin]);
+
   if (!isOpen) return null;
 
   const handleInputChange = (field, value) => {
@@ -273,6 +313,10 @@ export default function ReservationModal({
     }
     if (new Date(formData.fecha_fin) <= new Date(formData.fecha_inicio)) {
       setErrorMessage('La fecha y hora de fin debe ser posterior a la fecha de inicio.');
+      return false;
+    }
+    if (resultadoHorario && !resultadoHorario.disponible) {
+      setErrorMessage(resultadoHorario.mensaje);
       return false;
     }
     setErrorMessage('');
@@ -670,6 +714,26 @@ export default function ReservationModal({
                       )}
                     </div>
 
+                    {/* Notificación informativa permanente: Restricción logística de traslado de mobiliario (intervalo 1 hora) */}
+                    <div className="p-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl shadow-sm border border-slate-700/60 flex items-start gap-3">
+                      <div className="p-2 bg-brand-500/20 border border-brand-500/30 rounded-xl text-brand-400 shrink-0 mt-0.5">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold tracking-wide uppercase text-brand-300">
+                            Restricción Operativa: Traslado de Mobiliario
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-200 border border-brand-500/30 font-semibold">
+                            Intervalo obligatorio: 1 hora
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-xs leading-relaxed">
+                          Debido a la disponibilidad de personal para el traslado, acondicionamiento y desmontaje de mobiliario entre ambientes, <strong>debe existir un intervalo de al menos una (1) hora</strong> entre eventos continuos tanto en el mismo espacio como entre diferentes ambientes del campus durante el día.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -697,6 +761,57 @@ export default function ReservationModal({
                         />
                       </div>
                     </div>
+
+                    {/* Estado de verificación en tiempo real de disponibilidad e intervalo */}
+                    {verificandoHorario && (
+                      <div className="flex items-center gap-2 text-xs text-slate-500 italic mt-2 px-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600" />
+                        <span>Verificando disponibilidad e intervalo reglamentario de 1 hora...</span>
+                      </div>
+                    )}
+
+                    {/* Alerta de Conflicto de Horario o Intervalo Insuficiente */}
+                    {resultadoHorario && !resultadoHorario.disponible && (
+                      <div className="mt-3 p-4 bg-rose-50 border border-rose-300 rounded-2xl text-rose-950 text-xs flex items-start gap-3 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="p-1.5 bg-rose-100 border border-rose-300 rounded-xl text-rose-700 shrink-0 mt-0.5">
+                          <AlertTriangle className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-rose-900 text-xs">
+                              {resultadoHorario.tipo_conflicto === 'SOLAPAMIENTO_DIRECTO'
+                                ? 'Conflicto: Horario Ocupado en este Ambiente'
+                                : (resultadoHorario.tipo_conflicto?.includes('INTER_AREA')
+                                    ? 'Restricción de Traslado de Mobiliario Inter-Área (Mínimo 1 Hora)'
+                                    : 'Restricción de Intervalo Logístico (Mismo Ambiente - Mínimo 1 Hora)')}
+                            </span>
+                          </div>
+                          <p className="text-rose-800 leading-relaxed text-[11px]">
+                            {resultadoHorario.mensaje}
+                          </p>
+                          {resultadoHorario.hora_sugerida && (
+                            <div className="text-rose-900 font-semibold text-[11px] bg-rose-100/70 p-2 rounded-xl border border-rose-200 inline-block">
+                              💡 Horario sugerido:{' '}
+                              <strong>
+                                {resultadoHorario.tipo_conflicto?.includes('ANTERIOR')
+                                  ? `finalizar a más tardar a las ${resultadoHorario.hora_sugerida}`
+                                  : `iniciar a partir de las ${resultadoHorario.hora_sugerida}`}
+                              </strong>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notificación de Horario Válido */}
+                    {resultadoHorario && resultadoHorario.disponible && (
+                      <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2 animate-in fade-in duration-150">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="font-medium text-[11px]">
+                          Horario disponible. Cumple satisfactoriamente con el intervalo logístico de 1 hora.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
