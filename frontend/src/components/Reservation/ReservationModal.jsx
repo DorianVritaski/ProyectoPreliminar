@@ -22,6 +22,7 @@ import {
   Trash2,
   Eye,
   Clock,
+  ChevronDown,
 } from 'lucide-react';
 import { api } from '../../api/client';
 
@@ -62,6 +63,13 @@ export default function ReservationModal({
   const [createdTicket, setCreatedTicket] = useState(null);
   const [copiedTicket, setCopiedTicket] = useState(false);
   const [step3Armed, setStep3Armed] = useState(false);
+
+  // Secciones colapsables por área en el Paso 3 (vacío = todas colapsadas por defecto)
+  const [expandedAreas, setExpandedAreas] = useState({});
+
+  const toggleAreaCollapse = (areaId) => {
+    setExpandedAreas((prev) => ({ ...prev, [areaId]: !prev[areaId] }));
+  };
 
   // Estados para subida de PDFs de SSOMA
   const [uploadingSctr, setUploadingSctr] = useState(false);
@@ -837,89 +845,120 @@ export default function ReservationModal({
                     )}
                   </div>
 
-                  {/* Agrupación por Área Destino */}
-                  <div className="space-y-6">
-                    {catalogoAreas.map((area) => (
-                      <div key={area.area_id} className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-brand-500"></span>
-                            {area.area_nombre}
-                          </h4>
-                          <span className="text-[10px] text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded font-medium">
-                            Ruteo Interno (RN-04)
-                          </span>
-                        </div>
+                  {/* Agrupación por Área Destino — secciones colapsables */}
+                  <div className="space-y-3">
+                    {catalogoAreas.map((area) => {
+                      const isCollapsed = !expandedAreas[area.area_id];
+                      // Cuenta cuántos recursos del área tienen cantidad seleccionada
+                      const selectedCount = area.recursos.filter(
+                        (r) => (formData.recursos[r.id] || 0) > 0
+                      ).length;
 
-                        {/* Lista de recursos */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {area.recursos.map((rec) => {
-                            const dispInfo = stockDisponibilidad[rec.id];
-                            const stockDisp = dispInfo !== undefined ? dispInfo.stock_disponible : rec.stock_total;
-                            const isAgotado = stockDisp === 0; // RN-03: Deshabilitación automática
-                            const cantidadActual = formData.recursos[rec.id] || '';
-
-                            return (
-                              <div
-                                key={rec.id}
-                                className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
-                                  isAgotado
-                                    ? 'bg-slate-100/70 border-slate-200 opacity-60'
-                                    : cantidadActual > 0
-                                    ? 'bg-brand-50/50 border-brand-300 shadow-2xs'
-                                    : 'bg-white border-slate-200 hover:border-slate-300'
+                      return (
+                        <div key={area.area_id} className="rounded-2xl border border-slate-200 overflow-hidden">
+                          {/* Cabecera clicable */}
+                          <button
+                            type="button"
+                            onClick={() => toggleAreaCollapse(area.area_id)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors group"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0"></span>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 group-hover:text-brand-700 transition-colors">
+                                {area.area_nombre}
+                              </h4>
+                              {selectedCount > 0 && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full">
+                                  {selectedCount} seleccionado{selectedCount > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded font-medium hidden sm:inline">
+                                Ruteo Interno (RN-04)
+                              </span>
+                              <ChevronDown
+                                className={`w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-transform duration-200 ${
+                                  isCollapsed ? '-rotate-90' : 'rotate-0'
                                 }`}
-                              >
-                                <div className="min-w-0 flex-1 pr-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-semibold text-slate-800 truncate">
-                                      {rec.nombre}
-                                    </span>
-                                    {rec.es_critico && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-red-100 text-red-700 rounded">
-                                        Crítico
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-slate-400 mt-0.5">
-                                    {isAgotado ? (
-                                      <span className="text-rose-600 font-semibold">
-                                        Agotado en este horario
-                                      </span>
-                                    ) : (
-                                      <span>
-                                        Disponible:{' '}
-                                        <strong className="text-slate-700">{stockDisp}</strong> / {rec.stock_total}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                              />
+                            </div>
+                          </button>
 
-                                {/* Input numérico (RN-03: Deshabilitado si stock es 0) */}
-                                <div className="w-20 shrink-0">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={stockDisp}
-                                    disabled={isAgotado}
-                                    placeholder="0"
-                                    value={cantidadActual}
-                                    onChange={(e) =>
-                                      handleResourceQuantity(rec.id, e.target.value, stockDisp)
-                                    }
-                                    className={`w-full text-center font-bold text-sm rounded-lg border py-1.5 focus:outline-none transition-all ${
-                                      isAgotado
-                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-300'
-                                        : 'bg-white border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-slate-900'
-                                    }`}
-                                  />
-                                </div>
+                          {/* Cuerpo colapsable */}
+                          {!isCollapsed && (
+                            <div className="p-4 bg-white border-t border-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {area.recursos.map((rec) => {
+                                  const dispInfo = stockDisponibilidad[rec.id];
+                                  const stockDisp = dispInfo !== undefined ? dispInfo.stock_disponible : rec.stock_total;
+                                  const isAgotado = stockDisp === 0;
+                                  const cantidadActual = formData.recursos[rec.id] || '';
+
+                                  return (
+                                    <div
+                                      key={rec.id}
+                                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                                        isAgotado
+                                          ? 'bg-slate-100/70 border-slate-200 opacity-60'
+                                          : cantidadActual > 0
+                                          ? 'bg-brand-50/50 border-brand-300 shadow-2xs'
+                                          : 'bg-white border-slate-200 hover:border-slate-300'
+                                      }`}
+                                    >
+                                      <div className="min-w-0 flex-1 pr-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-sm font-semibold text-slate-800 truncate">
+                                            {rec.nombre}
+                                          </span>
+                                          {rec.es_critico && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.2 bg-red-100 text-red-700 rounded">
+                                              Crítico
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-slate-400 mt-0.5">
+                                          {isAgotado ? (
+                                            <span className="text-rose-600 font-semibold">
+                                              Agotado en este horario
+                                            </span>
+                                          ) : (
+                                            <span>
+                                              Disponible:{' '}
+                                              <strong className="text-slate-700">{stockDisp}</strong> / {rec.stock_total}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Input numérico (RN-03: Deshabilitado si stock es 0) */}
+                                      <div className="w-20 shrink-0">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max={stockDisp}
+                                          disabled={isAgotado}
+                                          placeholder="0"
+                                          value={cantidadActual}
+                                          onChange={(e) =>
+                                            handleResourceQuantity(rec.id, e.target.value, stockDisp)
+                                          }
+                                          className={`w-full text-center font-bold text-sm rounded-lg border py-1.5 focus:outline-none transition-all ${
+                                            isAgotado
+                                              ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-300'
+                                              : 'bg-white border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-slate-900'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {/* Campo Detalles Adicionales */}
                     <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-2">

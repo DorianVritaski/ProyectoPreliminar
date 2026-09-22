@@ -15,8 +15,8 @@ router = APIRouter()
 
 @router.get("/catalogo")
 def catalogo_recursos(db: Session = Depends(get_db)):
-    """Retorna el catálogo completo de recursos agrupados por área destino"""
-    areas = db.query(AreaDestino).order_by(AreaDestino.id).all()
+    """Retorna el catálogo completo de recursos agrupados por área destino (solo áreas activas)"""
+    areas = db.query(AreaDestino).filter(AreaDestino.activa == True).order_by(AreaDestino.id).all()
     resultado = []
     for area in areas:
         recursos = db.query(Recurso).filter(Recurso.area_destino_id == area.id).order_by(Recurso.id).all()
@@ -34,6 +34,7 @@ def catalogo_recursos(db: Session = Depends(get_db)):
             ]
         })
     return resultado
+
 
 @router.post("/disponibilidad", response_model=DisponibilidadResponse)
 def consultar_disponibilidad(
