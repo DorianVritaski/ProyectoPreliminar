@@ -111,7 +111,7 @@ export default function ReservationModal({
       const year = prefilledDate.getFullYear();
       const month = String(prefilledDate.getMonth() + 1).padStart(2, '0');
       const day = String(prefilledDate.getDate()).padStart(2, '0');
-      
+
       setFormData((prev) => ({
         ...prev,
         fecha_inicio: `${year}-${month}-${day}T09:00`,
@@ -459,9 +459,8 @@ export default function ReservationModal({
           <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center justify-between text-xs font-medium shrink-0">
             <div className="flex items-center gap-2">
               <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step >= 1 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
-                }`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}
               >
                 1
               </span>
@@ -472,9 +471,8 @@ export default function ReservationModal({
             <div className="w-8 h-[2px] bg-slate-200"></div>
             <div className="flex items-center gap-2">
               <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step >= 2 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
-                }`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}
               >
                 2
               </span>
@@ -485,9 +483,8 @@ export default function ReservationModal({
             <div className="w-8 h-[2px] bg-slate-200"></div>
             <div className="flex items-center gap-2">
               <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step >= 3 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
-                }`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 3 ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}
               >
                 3
               </span>
@@ -606,17 +603,43 @@ export default function ReservationModal({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                      {/*
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                          Teléfono / Anexo de Contacto <span className="text-rose-500">*</span>
+                          Teléfono de Contacto <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="987654321 / Anexo 124"
+                          placeholder="987654321"
                           value={formData.telefono}
                           onChange={(e) => handleInputChange('telefono', e.target.value)}
                           className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                           required
+                        />
+                      </div>
+                      */}
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Teléfono de Contacto <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="987654321"
+                          value={formData.telefono}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Permite solo números y limita la longitud máxima a 9 caracteres
+                            if (/^\d*$/.test(value) && value.length <= 9) {
+                              handleInputChange('telefono', value);
+                            }
+                          }}
+                          className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                          required
+                          maxLength={9} // Evita que escriban más de 9 caracteres
+                          pattern="\d{9}" // Valida que sean exactamente 9 dígitos al enviar
+                          title="El teléfono debe tener exactamente 9 dígitos numéricos" // Mensaje de error nativo
                         />
                       </div>
 
@@ -790,8 +813,8 @@ export default function ReservationModal({
                               {resultadoHorario.tipo_conflicto === 'SOLAPAMIENTO_DIRECTO'
                                 ? 'Conflicto: Horario Ocupado en este Ambiente'
                                 : (resultadoHorario.tipo_conflicto?.includes('INTER_AREA')
-                                    ? 'Restricción de Traslado de Mobiliario Inter-Área (Mínimo 1 Hora)'
-                                    : 'Restricción de Intervalo Logístico (Mismo Ambiente - Mínimo 1 Hora)')}
+                                  ? 'Restricción de Traslado de Mobiliario Inter-Área (Mínimo 1 Hora)'
+                                  : 'Restricción de Intervalo Logístico (Mismo Ambiente - Mínimo 1 Hora)')}
                             </span>
                           </div>
                           <p className="text-rose-800 leading-relaxed text-[11px]">
@@ -878,9 +901,8 @@ export default function ReservationModal({
                                 Ruteo Interno (RN-04)
                               </span>
                               <ChevronDown
-                                className={`w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-transform duration-200 ${
-                                  isCollapsed ? '-rotate-90' : 'rotate-0'
-                                }`}
+                                className={`w-4 h-4 text-slate-400 group-hover:text-brand-600 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : 'rotate-0'
+                                  }`}
                               />
                             </div>
                           </button>
@@ -898,13 +920,12 @@ export default function ReservationModal({
                                   return (
                                     <div
                                       key={rec.id}
-                                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
-                                        isAgotado
-                                          ? 'bg-slate-100/70 border-slate-200 opacity-60'
-                                          : cantidadActual > 0
+                                      className={`p-3 rounded-xl border transition-all flex items-center justify-between ${isAgotado
+                                        ? 'bg-slate-100/70 border-slate-200 opacity-60'
+                                        : cantidadActual > 0
                                           ? 'bg-brand-50/50 border-brand-300 shadow-2xs'
                                           : 'bg-white border-slate-200 hover:border-slate-300'
-                                      }`}
+                                        }`}
                                     >
                                       <div className="min-w-0 flex-1 pr-2">
                                         <div className="flex items-center gap-1.5">
@@ -943,11 +964,10 @@ export default function ReservationModal({
                                           onChange={(e) =>
                                             handleResourceQuantity(rec.id, e.target.value, stockDisp)
                                           }
-                                          className={`w-full text-center font-bold text-sm rounded-lg border py-1.5 focus:outline-none transition-all ${
-                                            isAgotado
-                                              ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-300'
-                                              : 'bg-white border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-slate-900'
-                                          }`}
+                                          className={`w-full text-center font-bold text-sm rounded-lg border py-1.5 focus:outline-none transition-all ${isAgotado
+                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed border-slate-300'
+                                            : 'bg-white border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-slate-900'
+                                            }`}
                                         />
                                       </div>
                                     </div>
@@ -1219,9 +1239,8 @@ export default function ReservationModal({
                     key="btn-submit"
                     type="submit"
                     disabled={submitting || !step3Armed}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all ${
-                      !step3Armed ? 'opacity-80 cursor-not-allowed' : ''
-                    } disabled:opacity-50`}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all ${!step3Armed ? 'opacity-80 cursor-not-allowed' : ''
+                      } disabled:opacity-50`}
                   >
                     {submitting ? (
                       <>
