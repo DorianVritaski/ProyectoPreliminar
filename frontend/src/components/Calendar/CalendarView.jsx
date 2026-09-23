@@ -21,20 +21,15 @@ export default function CalendarView({
   const [isDayModalOpen, setIsDayModalOpen] = useState(false);
   const calendarRef = useRef(null);
 
-  // Mapear eventos al formato de FullCalendar con colores y estilo según estado
-  const calendarEvents = eventos.map((evt) => {
-    const statusStyle = getStatusInfo(evt.estado);
-    return {
-      id: String(evt.id),
-      title: `${formatTimeRange(evt.fecha_inicio, evt.fecha_fin)} | ${evt.ambiente}`,
-      start: evt.fecha_inicio,
-      end: evt.fecha_fin,
-      backgroundColor: statusStyle.color,
-      borderColor: statusStyle.color,
-      textColor: '#ffffff',
-      extendedProps: evt,
-    };
-  });
+  // Mapear eventos al formato de FullCalendar
+  const calendarEvents = eventos.map((evt) => ({
+    id: String(evt.id),
+    title: evt.ambiente, // fallback para accesibilidad
+    start: evt.fecha_inicio,
+    end: evt.fecha_fin,
+    // Sin backgroundColor/borderColor: el color lo gestiona renderEventContent con inline style
+    extendedProps: evt,
+  }));
 
   // Manejar clic en una celda de fecha (RF-02.2)
   const handleDateClick = (arg) => {
@@ -64,16 +59,21 @@ export default function CalendarView({
     : [];
 
   // Custom Event Content Renderer (RF-02.1)
+  // Renderiza un pill con color sólido según estado — bypassa el sistema de colores de FullCalendar
   const renderEventContent = (eventInfo) => {
     const raw = eventInfo.event.extendedProps;
+    const statusStyle = getStatusInfo(raw.estado);
     return (
-      <div className="flex items-center gap-1.5 px-1 py-0.5 overflow-hidden text-ellipsis whitespace-nowrap w-full">
-        <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0"></span>
-        <span className="font-bold text-[11px] leading-tight">
+      <div
+        style={{ backgroundColor: statusStyle.color }}
+        className="flex items-center gap-1.5 px-2 py-0.5 rounded-md overflow-hidden w-full cursor-pointer"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0"></span>
+        <span className="font-bold text-[11px] leading-tight text-white truncate">
           {formatTimeRange(raw.fecha_inicio, raw.fecha_fin)}
         </span>
-        <span className="opacity-75 text-[10px]">|</span>
-        <span className="font-medium text-[11px] truncate">{raw.ambiente}</span>
+        <span className="text-white/50 text-[10px] shrink-0">|</span>
+        <span className="font-medium text-[11px] text-white/90 truncate">{raw.ambiente}</span>
       </div>
     );
   };
