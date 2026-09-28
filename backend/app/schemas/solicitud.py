@@ -2,6 +2,26 @@ from datetime import datetime
 import re
 from pydantic import BaseModel, Field, field_validator
 
+class HorarioSlot(BaseModel):
+    fecha_inicio: datetime
+    fecha_fin: datetime
+
+    @field_validator("fecha_fin")
+    @classmethod
+    def validate_slot_fechas(cls, v: datetime, info) -> datetime:
+        fecha_inicio = info.data.get("fecha_inicio")
+        if fecha_inicio and v <= fecha_inicio:
+            raise ValueError("La fecha y hora de fin del horario debe ser posterior a la fecha y hora de inicio")
+        return v
+
+class HorarioSlotResponse(BaseModel):
+    id: int | None = None
+    fecha_inicio: datetime
+    fecha_fin: datetime
+
+    class Config:
+        from_attributes = True
+
 class RecursoItemRequest(BaseModel):
     recurso_id: int
     cantidad: int = Field(gt=0, description="Cantidad debe ser mayor a 0")
@@ -11,8 +31,9 @@ class SolicitudCreate(BaseModel):
     telefono: str = Field(min_length=6, max_length=20)
     area_solicitante_id: int = Field(description="ID del catálogo administrable de áreas solicitantes (RF-01.5)")
     ambiente_id: int
-    fecha_inicio: datetime
-    fecha_fin: datetime
+    fecha_inicio: datetime | None = None
+    fecha_fin: datetime | None = None
+    horarios: list[HorarioSlot] | None = None
     detalles: str | None = None
     croquis_url: str | None = None
     protocolo_ssoma: bool = False
@@ -25,16 +46,15 @@ class SolicitudCreate(BaseModel):
     @classmethod
     def validate_correo_institucional(cls, v: str) -> str:
         clean_email = v.strip().lower()
-        # Ensure it contains @continental.edu.pe
         if not re.match(r"^[\w\.-]+@([\w-]+\.)*continental\.edu\.pe$", clean_email) and not clean_email.endswith("@continental.edu.pe"):
             raise ValueError("El correo debe pertenecer al dominio institucional (@continental.edu.pe)")
         return clean_email
 
     @field_validator("fecha_fin")
     @classmethod
-    def validate_fechas(cls, v: datetime, info) -> datetime:
+    def validate_fechas(cls, v: datetime | None, info) -> datetime | None:
         fecha_inicio = info.data.get("fecha_inicio")
-        if fecha_inicio and v <= fecha_inicio:
+        if v is not None and fecha_inicio is not None and v <= fecha_inicio:
             raise ValueError("La fecha y hora de fin debe ser posterior a la fecha y hora de inicio")
         return v
 
@@ -89,6 +109,7 @@ class SolicitudResponse(BaseModel):
     url_personal_externo_pdf: str | None = None
     lineamientos_ssoma: str | None = None
     created_at: datetime
+    horarios: list[HorarioSlotResponse] = []
     recursos: list[SolicitudRecursoDetalleResponse] = []
     conformidades: list[ConformidadAreaResponse] = []
     requiere_conformidad_ti: bool = False

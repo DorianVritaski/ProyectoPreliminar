@@ -40,17 +40,35 @@ export const api = {
     if (excluirId) params.append('solicitud_id_excluir', excluirId);
     return fetchJSON(`/ambientes/${ambienteId}/verificar-horario?${params.toString()}`);
   },
+  verificarHorariosAmbiente: (ambienteId, horarios, excluirId = null, bufferMinutos = 60) =>
+    fetchJSON(`/ambientes/${ambienteId}/verificar-horarios`, {
+      method: 'POST',
+      body: JSON.stringify({
+        horarios,
+        solicitud_id_excluir: excluirId,
+        buffer_minutos: bufferMinutos,
+      }),
+    }),
 
   // Áreas Solicitantes Públicas (RF-01.5)
   getAreasSolicitantes: () => fetchJSON('/areas-solicitantes'),
 
   // Recursos Públicos
   getRecursosCatalogo: () => fetchJSON('/recursos/catalogo'),
-  checkDisponibilidad: (fecha_inicio, fecha_fin) =>
-    fetchJSON('/recursos/disponibilidad', {
+  checkDisponibilidad: (fechaInicioOrParams, fechaFin) => {
+    let body;
+    if (Array.isArray(fechaInicioOrParams)) {
+      body = { horarios: fechaInicioOrParams };
+    } else if (typeof fechaInicioOrParams === 'object' && fechaInicioOrParams !== null) {
+      body = fechaInicioOrParams;
+    } else {
+      body = { fecha_inicio: fechaInicioOrParams, fecha_fin: fechaFin };
+    }
+    return fetchJSON('/recursos/disponibilidad', {
       method: 'POST',
-      body: JSON.stringify({ fecha_inicio, fecha_fin }),
-    }),
+      body: JSON.stringify(body),
+    });
+  },
 
   // Eventos del Calendario
   getEventos: (params = {}) => {

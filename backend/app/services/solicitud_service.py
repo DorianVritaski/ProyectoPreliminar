@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from app.models.solicitud import Solicitud, SolicitudRecurso, SolicitudConformidad
+from app.models.solicitud import Solicitud, SolicitudRecurso, SolicitudConformidad, SolicitudHorario
 from app.models.ambiente import Ambiente
 from app.models.recurso import Recurso
 from app.models.area_destino import AreaDestino
@@ -14,11 +14,14 @@ from app.schemas.solicitud import (
     SolicitudCreate,
     SolicitudResponse,
     SolicitudRecursoDetalleResponse,
-    ConformidadAreaResponse
+    ConformidadAreaResponse,
+    HorarioSlotResponse
 )
 from app.services.disponibilidad import (
     verificar_solapamiento_ambiente,
-    calcular_stock_disponible
+    calcular_stock_disponible,
+    diagnosticar_disponibilidad_multiple,
+    calcular_stock_disponible_horarios
 )
 
 def generar_codigo_ticket(db: Session, anio: int | None = None) -> str:
@@ -53,32 +56,35 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
             detail=f"El área o facultad solicitante con ID {data.area_solicitante_id} no existe o no está activa."
         )
 
-    # 3. RN-01: Validar solapamiento en el mismo ambiente
-    conflicto_ambiente = verificar_solapamiento_ambiente(
-        db,
-        ambiente_id=data.ambiente_id,
-        fecha_inicio=data.fecha_inicio,
-        fecha_fin=data.fecha_fin
-    )
-    if conflicto_ambiente:
-        mensaje_detalle = getattr(conflicto_ambiente, "mensaje_conflicto", None)
-        if not mensaje_detalle:
-            ini_str = conflicto_ambiente.fecha_inicio.strftime("%H:%M")
-            fin_str = conflicto_ambiente.fecha_fin.strftime("%H:%M del %d/%m/%Y")
-            mensaje_detalle = (
-                f"Conflicto de horario en '{ambiente.nombre}'. "
-                f"Ya existe una solicitud ({conflicto_ambiente.codigo_ticket}) "
-                f"en estado {conflicto_ambiente.estado} desde las {ini_str} hasta las {fin_str}."
-            )
+    # 3. Extraer y estructurar franjas horarias solicitadas
+    horarios_req = []
+    if data.horarios and len(data.horarios) > 0:
+        for h in data.horarios:
+            horarios_req.append({"fecha_inicio": h.fecha_inicio, "fecha_fin": h.fecha_fin})
+    elif data.fecha_inicio and data.fecha_fin:
+        horarios_req.append({"fecha_inicio": data.fecha_inicio, "fecha_fin": data.fecha_fin})
+    else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=mensaje_detalle
+            detail="Debe proporcionar al menos una fecha y horario para el evento."
         )
 
-    # 4. RN-02 y RN-03: Validar disponibilidad de stock de cada recurso solicitado
+    # RN-01: Validar solapamiento e intervalo de 1 hora para todas las fechas solicitadas
+    diag = diagnosticar_disponibilidad_multiple(
+        db,
+        ambiente_id=data.ambiente_id,
+        horarios=horarios_req
+    )
+    if not diag["disponible"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=diag["mensaje"]
+        )
+
+    # 4. RN-02 y RN-03: Validar disponibilidad de stock para todas las fechas solicitadas
     if data.recursos:
         stock_info = {
-            item["id"]: item for item in calcular_stock_disponible(db, data.fecha_inicio, data.fecha_fin)
+            item["id"]: item for item in calcular_stock_disponible_horarios(db, horarios_req)
         }
         for req in data.recursos:
             recurso_stat = stock_info.get(req.recurso_id)
@@ -94,20 +100,23 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"Stock insuficiente para '{recurso_stat['nombre']}'. "
-                        f"Solicitado: {req.cantidad}, Disponible en ese horario: {disponible}."
+                        f"Solicitado: {req.cantidad}, Disponible para estas fechas: {disponible}."
                     )
                 )
 
-    # 5. Crear la solicitud
-    codigo_ticket = generar_codigo_ticket(db, anio=data.fecha_inicio.year)
+    # 5. Crear la solicitud persistente
+    fecha_inicio_sol = min(h["fecha_inicio"] for h in horarios_req)
+    fecha_fin_sol = max(h["fecha_fin"] for h in horarios_req)
+
+    codigo_ticket = generar_codigo_ticket(db, anio=fecha_inicio_sol.year)
     solicitud = Solicitud(
         codigo_ticket=codigo_ticket,
         correo_solicitante=data.correo_solicitante,
         telefono=data.telefono,
         area_solicitante_id=data.area_solicitante_id,
         ambiente_id=data.ambiente_id,
-        fecha_inicio=data.fecha_inicio,
-        fecha_fin=data.fecha_fin,
+        fecha_inicio=fecha_inicio_sol,
+        fecha_fin=fecha_fin_sol,
         estado="PENDIENTE",
         motivo_rechazo=None,
         detalles=data.detalles.strip() if data.detalles else None,
@@ -120,6 +129,15 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
     )
     db.add(solicitud)
     db.flush() # Obtiene el ID generado
+
+    # Guardar las franjas horarias individuales en solicitud_horarios
+    for h in horarios_req:
+        slot_db = SolicitudHorario(
+            solicitud_id=solicitud.id,
+            fecha_inicio=h["fecha_inicio"],
+            fecha_fin=h["fecha_fin"]
+        )
+        db.add(slot_db)
 
     # 6. Insertar recursos solicitados y registrar áreas operativas involucradas
     areas_involucradas = set()
@@ -259,6 +277,23 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
     if solicitud.area_solicitante:
         area_nombre = solicitud.area_solicitante.nombre
 
+    horarios_resp = [
+        HorarioSlotResponse(
+            id=h.id,
+            fecha_inicio=h.fecha_inicio,
+            fecha_fin=h.fecha_fin
+        )
+        for h in (solicitud.horarios or [])
+    ]
+    if not horarios_resp and solicitud.fecha_inicio and solicitud.fecha_fin:
+        horarios_resp = [
+            HorarioSlotResponse(
+                id=None,
+                fecha_inicio=solicitud.fecha_inicio,
+                fecha_fin=solicitud.fecha_fin
+            )
+        ]
+
     return SolicitudResponse(
         id=solicitud.id,
         codigo_ticket=solicitud.codigo_ticket,
@@ -280,6 +315,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         url_personal_externo_pdf=getattr(solicitud, "url_personal_externo_pdf", None),
         lineamientos_ssoma=getattr(solicitud, "lineamientos_ssoma", None),
         created_at=solicitud.created_at,
+        horarios=horarios_resp,
         recursos=recursos_resp,
         conformidades=conformidades_resp,
         requiere_conformidad_ti=requiere_ti,

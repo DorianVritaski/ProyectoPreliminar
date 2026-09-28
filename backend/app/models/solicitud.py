@@ -32,6 +32,21 @@ class Solicitud(Base):
     area_solicitante = relationship("AreaSolicitante", back_populates="solicitudes")
     recursos_solicitados = relationship("SolicitudRecurso", back_populates="solicitud", cascade="all, delete-orphan")
     conformidades = relationship("SolicitudConformidad", back_populates="solicitud", cascade="all, delete-orphan")
+    horarios = relationship("SolicitudHorario", back_populates="solicitud", cascade="all, delete-orphan", order_by="SolicitudHorario.fecha_inicio.asc()")
+
+
+class SolicitudHorario(Base):
+    __tablename__ = "solicitud_horarios"
+    __table_args__ = (
+        CheckConstraint("fecha_fin > fecha_inicio", name="check_horario_fechas"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    solicitud_id = Column(Integer, ForeignKey("solicitudes.id", ondelete="CASCADE"), nullable=False, index=True)
+    fecha_inicio = Column(DateTime, nullable=False, index=True)
+    fecha_fin = Column(DateTime, nullable=False, index=True)
+
+    solicitud = relationship("Solicitud", back_populates="horarios")
 
 
 class SolicitudRecurso(Base):

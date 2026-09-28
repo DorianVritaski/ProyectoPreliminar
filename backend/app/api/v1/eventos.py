@@ -1,10 +1,10 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from app.core.database import get_db
-from app.models.solicitud import Solicitud, SolicitudRecurso
+from app.models.solicitud import Solicitud, SolicitudRecurso, SolicitudHorario
 from app.models.ambiente import Ambiente
 from app.models.recurso import Recurso
 from app.models.area_destino import AreaDestino
@@ -24,6 +24,7 @@ def obtener_eventos(
     Especificación SDD 5.A:
     GET /api/v1/eventos
     Retorna eventos para el calendario interactivo con anonimización de solicitante.
+    Soporta eventos con múltiples franjas horarias independientes.
     """
     query = db.query(Solicitud).join(Ambiente, Solicitud.ambiente_id == Ambiente.id)
 
@@ -31,14 +32,28 @@ def obtener_eventos(
     query = query.filter(Solicitud.estado.in_(["APROBADO", "PENDIENTE"]))
 
     if fecha_inicio and fecha_fin:
-        query = query.filter(
+        slot_in_range = db.query(SolicitudHorario.id).filter(
+            SolicitudHorario.solicitud_id == Solicitud.id,
+            SolicitudHorario.fecha_inicio < fecha_fin,
+            SolicitudHorario.fecha_fin > fecha_inicio
+        ).exists()
+        fallback_in_range = and_(
             Solicitud.fecha_inicio < fecha_fin,
             Solicitud.fecha_fin > fecha_inicio
         )
+        query = query.filter(or_(slot_in_range, fallback_in_range))
     elif fecha_inicio:
-        query = query.filter(Solicitud.fecha_fin >= fecha_inicio)
+        slot_in_range = db.query(SolicitudHorario.id).filter(
+            SolicitudHorario.solicitud_id == Solicitud.id,
+            SolicitudHorario.fecha_fin >= fecha_inicio
+        ).exists()
+        query = query.filter(or_(slot_in_range, Solicitud.fecha_fin >= fecha_inicio))
     elif fecha_fin:
-        query = query.filter(Solicitud.fecha_inicio <= fecha_fin)
+        slot_in_range = db.query(SolicitudHorario.id).filter(
+            SolicitudHorario.solicitud_id == Solicitud.id,
+            SolicitudHorario.fecha_inicio <= fecha_fin
+        ).exists()
+        query = query.filter(or_(slot_in_range, Solicitud.fecha_inicio <= fecha_fin))
 
     if ambiente_id:
         query = query.filter(Solicitud.ambiente_id == ambiente_id)
@@ -88,19 +103,41 @@ def obtener_eventos(
         # Nombre del área solicitante
         area_nombre = sol.area_solicitante.nombre if sol.area_solicitante else "Área Institucional"
 
-        resultado.append(
-            EventoCalendarioResponse(
-                id=sol.id,
-                codigo_ticket=sol.codigo_ticket,
-                titulo_evento=titulo,
-                ambiente_id=sol.ambiente_id,
-                ambiente=sol.ambiente.nombre if sol.ambiente else "Ambiente",
-                fecha_inicio=sol.fecha_inicio,
-                fecha_fin=sol.fecha_fin,
-                estado=sol.estado,
-                area_solicitante=area_nombre,
-                recursos=recursos_evento
+        slots = sol.horarios if sol.horarios and len(sol.horarios) > 0 else None
+        if slots:
+            for s in slots:
+                if fecha_inicio and s.fecha_fin <= fecha_inicio:
+                    continue
+                if fecha_fin and s.fecha_inicio >= fecha_fin:
+                    continue
+                resultado.append(
+                    EventoCalendarioResponse(
+                        id=s.id,
+                        codigo_ticket=sol.codigo_ticket,
+                        titulo_evento=titulo,
+                        ambiente_id=sol.ambiente_id,
+                        ambiente=sol.ambiente.nombre if sol.ambiente else "Ambiente",
+                        fecha_inicio=s.fecha_inicio,
+                        fecha_fin=s.fecha_fin,
+                        estado=sol.estado,
+                        area_solicitante=area_nombre,
+                        recursos=recursos_evento
+                    )
+                )
+        else:
+            resultado.append(
+                EventoCalendarioResponse(
+                    id=sol.id,
+                    codigo_ticket=sol.codigo_ticket,
+                    titulo_evento=titulo,
+                    ambiente_id=sol.ambiente_id,
+                    ambiente=sol.ambiente.nombre if sol.ambiente else "Ambiente",
+                    fecha_inicio=sol.fecha_inicio,
+                    fecha_fin=sol.fecha_fin,
+                    estado=sol.estado,
+                    area_solicitante=area_nombre,
+                    recursos=recursos_evento
+                )
             )
-        )
 
     return resultado

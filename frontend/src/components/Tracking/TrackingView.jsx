@@ -196,16 +196,37 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                         <strong className="text-slate-900 text-sm">{sol.ambiente_nombre}</strong>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
-                      <span>{formatDateFull(sol.fecha_inicio)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <Clock className="w-4 h-4 text-brand-600 shrink-0" />
-                      <span className="font-semibold text-slate-900">
-                        {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
-                      </span>
-                    </div>
+                    {sol.horarios && sol.horarios.length > 1 ? (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                          Fechas y Horarios ({sol.horarios.length}):
+                        </span>
+                        <div className="space-y-1">
+                          {sol.horarios.map((h, i) => (
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200">
+                              <span className="w-4 h-4 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                {i + 1}
+                              </span>
+                              <span className="font-semibold text-slate-900">{formatDateFull(h.fecha_inicio)}:</span>
+                              <span className="text-slate-600 font-medium">{formatTimeRange(h.fecha_inicio, h.fecha_fin)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 text-slate-700">
+                          <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
+                          <span>{formatDateFull(sol.fecha_inicio)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-700">
+                          <Clock className="w-4 h-4 text-brand-600 shrink-0" />
+                          <span className="font-semibold text-slate-900">
+                            {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">

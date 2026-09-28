@@ -26,9 +26,14 @@ class RecursoResponse(RecursoBase):
     class Config:
         from_attributes = True
 
-class DisponibilidadRequest(BaseModel):
+class DisponibilidadSlot(BaseModel):
     fecha_inicio: datetime
     fecha_fin: datetime
+
+class DisponibilidadRequest(BaseModel):
+    fecha_inicio: datetime | None = None
+    fecha_fin: datetime | None = None
+    horarios: list[DisponibilidadSlot] | None = None
 
 class RecursoDisponibilidadItem(BaseModel):
     id: int
@@ -41,6 +46,7 @@ class RecursoDisponibilidadItem(BaseModel):
     es_critico: bool
 
 class DisponibilidadResponse(BaseModel):
-    fecha_inicio: datetime
-    fecha_fin: datetime
+    fecha_inicio: datetime | None = None
+    fecha_fin: datetime | None = None
+    horarios: list[DisponibilidadSlot] | None = None
     recursos: list[RecursoDisponibilidadItem]

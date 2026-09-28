@@ -23,6 +23,7 @@ import {
   Eye,
   Clock,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { api } from '../../api/client';
 
@@ -44,6 +45,7 @@ export default function ReservationModal({
     ambiente_id: '',
     fecha_inicio: '',
     fecha_fin: '',
+    horarios: [{ fecha_inicio: '', fecha_fin: '' }],
     detalles: '',
     croquis_url: '',
     protocolo_ssoma: false,
@@ -111,11 +113,16 @@ export default function ReservationModal({
       const year = prefilledDate.getFullYear();
       const month = String(prefilledDate.getMonth() + 1).padStart(2, '0');
       const day = String(prefilledDate.getDate()).padStart(2, '0');
+      const slot = {
+        fecha_inicio: `${year}-${month}-${day}T09:00`,
+        fecha_fin: `${year}-${month}-${day}T12:00`,
+      };
 
       setFormData((prev) => ({
         ...prev,
-        fecha_inicio: `${year}-${month}-${day}T09:00`,
-        fecha_fin: `${year}-${month}-${day}T12:00`,
+        fecha_inicio: slot.fecha_inicio,
+        fecha_fin: slot.fecha_fin,
+        horarios: [slot],
       }));
     } else {
       // Default to tomorrow 09:00 - 12:00
@@ -124,10 +131,15 @@ export default function ReservationModal({
       const year = tomorrow.getFullYear();
       const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
       const day = String(tomorrow.getDate()).padStart(2, '0');
+      const slot = {
+        fecha_inicio: `${year}-${month}-${day}T09:00`,
+        fecha_fin: `${year}-${month}-${day}T12:00`,
+      };
       setFormData((prev) => ({
         ...prev,
-        fecha_inicio: prev.fecha_inicio || `${year}-${month}-${day}T09:00`,
-        fecha_fin: prev.fecha_fin || `${year}-${month}-${day}T12:00`,
+        fecha_inicio: prev.fecha_inicio || slot.fecha_inicio,
+        fecha_fin: prev.fecha_fin || slot.fecha_fin,
+        horarios: prev.horarios && prev.horarios.length > 0 && prev.horarios[0].fecha_inicio ? prev.horarios : [slot],
         detalles: '',
         croquis_url: '',
         protocolo_ssoma: false,
@@ -196,13 +208,87 @@ export default function ReservationModal({
     }
   };
 
-  // RN-02 y RN-03: Cuando cambian las fechas, consultar stock dinámico
+  // Manejo de múltiples fechas y franjas horarias (RF-04.2)
+  const handleAddHorarioSlot = () => {
+    setFormData((prev) => {
+      const currentHorarios = prev.horarios && prev.horarios.length > 0 ? prev.horarios : [];
+      const lastSlot = currentHorarios[currentHorarios.length - 1];
+      let nextStart = '';
+      let nextEnd = '';
+      if (lastSlot?.fecha_inicio && lastSlot?.fecha_fin) {
+        const lastDate = new Date(lastSlot.fecha_inicio);
+        lastDate.setDate(lastDate.getDate() + 1);
+        const y = lastDate.getFullYear();
+        const m = String(lastDate.getMonth() + 1).padStart(2, '0');
+        const d = String(lastDate.getDate()).padStart(2, '0');
+        const startHour = lastSlot.fecha_inicio.split('T')[1] || '09:00';
+        const endHour = lastSlot.fecha_fin.split('T')[1] || '12:00';
+        nextStart = `${y}-${m}-${d}T${startHour}`;
+        nextEnd = `${y}-${m}-${d}T${endHour}`;
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const y = tomorrow.getFullYear();
+        const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const d = String(tomorrow.getDate()).padStart(2, '0');
+        nextStart = `${y}-${m}-${d}T09:00`;
+        nextEnd = `${y}-${m}-${d}T12:00`;
+      }
+      const updatedHorarios = [...currentHorarios, { fecha_inicio: nextStart, fecha_fin: nextEnd }];
+      return {
+        ...prev,
+        horarios: updatedHorarios,
+        fecha_inicio: updatedHorarios[0]?.fecha_inicio || '',
+        fecha_fin: updatedHorarios[updatedHorarios.length - 1]?.fecha_fin || '',
+      };
+    });
+    setErrorMessage('');
+  };
+
+  const handleRemoveHorarioSlot = (indexToRemove) => {
+    setFormData((prev) => {
+      if ((prev.horarios || []).length <= 1) return prev;
+      const updatedHorarios = prev.horarios.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        horarios: updatedHorarios,
+        fecha_inicio: updatedHorarios[0]?.fecha_inicio || '',
+        fecha_fin: updatedHorarios[updatedHorarios.length - 1]?.fecha_fin || '',
+      };
+    });
+    setErrorMessage('');
+  };
+
+  const handleHorarioSlotChange = (index, field, value) => {
+    setFormData((prev) => {
+      const updatedHorarios = (prev.horarios || []).map((slot, idx) => {
+        if (idx === index) {
+          return { ...slot, [field]: value };
+        }
+        return slot;
+      });
+      return {
+        ...prev,
+        horarios: updatedHorarios,
+        fecha_inicio: updatedHorarios[0]?.fecha_inicio || '',
+        fecha_fin: updatedHorarios[updatedHorarios.length - 1]?.fecha_fin || '',
+      };
+    });
+    setErrorMessage('');
+  };
+
+  const horariosDep = JSON.stringify(formData.horarios);
+
+  // RN-02 y RN-03: Cuando cambian las fechas, consultar stock dinámico para todas las franjas
   useEffect(() => {
-    if (!formData.fecha_inicio || !formData.fecha_fin) return;
-    if (new Date(formData.fecha_fin) <= new Date(formData.fecha_inicio)) return;
+    if (!formData.horarios || formData.horarios.length === 0) return;
+    const allValid = formData.horarios.every(
+      (h) => h.fecha_inicio && h.fecha_fin && new Date(h.fecha_fin) > new Date(h.fecha_inicio)
+    );
+    if (!allValid) return;
 
     setLoadingStock(true);
-    api.checkDisponibilidad(formData.fecha_inicio, formData.fecha_fin)
+    api.checkDisponibilidad(formData.horarios)
       .then((res) => {
         const stockMap = {};
         (res.recursos || []).forEach((item) => {
@@ -231,15 +317,18 @@ export default function ReservationModal({
       .finally(() => {
         setLoadingStock(false);
       });
-  }, [formData.fecha_inicio, formData.fecha_fin]);
+  }, [horariosDep]);
 
   // RN-01: Verificación en tiempo real del ambiente y cumplimiento del intervalo mínimo de 1 hora
   useEffect(() => {
-    if (!formData.ambiente_id || !formData.fecha_inicio || !formData.fecha_fin) {
+    if (!formData.ambiente_id || !formData.horarios || formData.horarios.length === 0) {
       setResultadoHorario(null);
       return;
     }
-    if (new Date(formData.fecha_fin) <= new Date(formData.fecha_inicio)) {
+    const allValid = formData.horarios.every(
+      (h) => h.fecha_inicio && h.fecha_fin && new Date(h.fecha_fin) > new Date(h.fecha_inicio)
+    );
+    if (!allValid) {
       setResultadoHorario(null);
       return;
     }
@@ -247,7 +336,7 @@ export default function ReservationModal({
     let isCancelled = false;
     setVerificandoHorario(true);
 
-    api.verificarHorarioAmbiente(formData.ambiente_id, formData.fecha_inicio, formData.fecha_fin)
+    api.verificarHorariosAmbiente(formData.ambiente_id, formData.horarios)
       .then((res) => {
         if (!isCancelled) {
           setResultadoHorario(res);
@@ -265,7 +354,7 @@ export default function ReservationModal({
     return () => {
       isCancelled = true;
     };
-  }, [formData.ambiente_id, formData.fecha_inicio, formData.fecha_fin]);
+  }, [formData.ambiente_id, horariosDep]);
 
   if (!isOpen) return null;
 
@@ -315,13 +404,20 @@ export default function ReservationModal({
       setErrorMessage('Por favor seleccione un ambiente o espacio físico.');
       return false;
     }
-    if (!formData.fecha_inicio || !formData.fecha_fin) {
-      setErrorMessage('Por favor defina la fecha y hora de inicio y fin del evento.');
-      return false;
-    }
-    if (new Date(formData.fecha_fin) <= new Date(formData.fecha_inicio)) {
-      setErrorMessage('La fecha y hora de fin debe ser posterior a la fecha de inicio.');
-      return false;
+    const currentHorarios = formData.horarios && formData.horarios.length > 0
+      ? formData.horarios
+      : [{ fecha_inicio: formData.fecha_inicio, fecha_fin: formData.fecha_fin }];
+
+    for (let i = 0; i < currentHorarios.length; i++) {
+      const h = currentHorarios[i];
+      if (!h.fecha_inicio || !h.fecha_fin) {
+        setErrorMessage(`Por favor defina la fecha y hora de inicio y fin para el Horario #${i + 1}.`);
+        return false;
+      }
+      if (new Date(h.fecha_fin) <= new Date(h.fecha_inicio)) {
+        setErrorMessage(`En el Horario #${i + 1}, la fecha y hora de fin debe ser posterior a la fecha de inicio.`);
+        return false;
+      }
     }
     if (resultadoHorario && !resultadoHorario.disponible) {
       setErrorMessage(resultadoHorario.mensaje);
@@ -381,13 +477,18 @@ export default function ReservationModal({
         cantidad: qty,
       }));
 
+      const activeHorarios = formData.horarios && formData.horarios.length > 0
+        ? formData.horarios
+        : [{ fecha_inicio: formData.fecha_inicio, fecha_fin: formData.fecha_fin }];
+
       const payload = {
         correo_solicitante: formData.correo_solicitante.trim(),
         telefono: formData.telefono.trim(),
         area_solicitante_id: Number(formData.area_solicitante_id),
         ambiente_id: Number(formData.ambiente_id),
-        fecha_inicio: formData.fecha_inicio,
-        fecha_fin: formData.fecha_fin,
+        fecha_inicio: activeHorarios[0].fecha_inicio,
+        fecha_fin: activeHorarios[activeHorarios.length - 1].fecha_fin,
+        horarios: activeHorarios,
         detalles: formData.detalles?.trim() || null,
         croquis_url: formData.croquis_url?.trim() || null,
         protocolo_ssoma: Boolean(formData.protocolo_ssoma || formData.requiere_ssoma),
@@ -765,31 +866,84 @@ export default function ReservationModal({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                          Fecha y Hora de Inicio <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={formData.fecha_inicio}
-                          onChange={(e) => handleInputChange('fecha_inicio', e.target.value)}
-                          className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
-                          required
-                        />
+                    {/* Apartado dinámico: Fechas y Horarios del Evento (Soporte Multi-Fecha) */}
+                    <div className="space-y-3 pt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                            Fechas y Horarios del Evento <span className="text-rose-500">*</span>
+                          </label>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Puede reservar una sola fecha o añadir múltiples fechas distintas para el mismo evento.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddHorarioSlot}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 hover:text-brand-800 text-xs font-bold rounded-xl border border-brand-200 shadow-2xs transition-all shrink-0 cursor-pointer self-start sm:self-auto"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-brand-600" />
+                          <span>+ Añadir otra fecha / horario</span>
+                        </button>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                          Fecha y Hora de Fin <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={formData.fecha_fin}
-                          onChange={(e) => handleInputChange('fecha_fin', e.target.value)}
-                          className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
-                          required
-                        />
+                      <div className="space-y-3">
+                        {(formData.horarios || []).map((slot, index) => (
+                          <div
+                            key={index}
+                            className="p-3.5 bg-slate-50/90 hover:bg-slate-50 border border-slate-200 rounded-2xl space-y-3 transition-colors shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
+                                  {index + 1}
+                                </span>
+                                <span className="text-xs font-bold text-slate-800">
+                                  {index === 0 ? 'Fecha y Horario Principal' : `Fecha y Horario Adicional #${index + 1}`}
+                                </span>
+                              </div>
+                              {formData.horarios && formData.horarios.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveHorarioSlot(index)}
+                                  className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Eliminar esta fecha"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Eliminar</span>
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                  Fecha y Hora de Inicio <span className="text-rose-500">*</span>
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={slot.fecha_inicio}
+                                  onChange={(e) => handleHorarioSlotChange(index, 'fecha_inicio', e.target.value)}
+                                  className="w-full bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-3.5 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all shadow-2xs"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                  Fecha y Hora de Fin <span className="text-rose-500">*</span>
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={slot.fecha_fin}
+                                  onChange={(e) => handleHorarioSlotChange(index, 'fecha_fin', e.target.value)}
+                                  className="w-full bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-3.5 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all shadow-2xs"
+                                  required
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -797,7 +951,7 @@ export default function ReservationModal({
                     {verificandoHorario && (
                       <div className="flex items-center gap-2 text-xs text-slate-500 italic mt-2 px-1">
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600" />
-                        <span>Verificando disponibilidad e intervalo reglamentario de 1 hora...</span>
+                        <span>Verificando disponibilidad e intervalo reglamentario de 1 hora en todas las fechas...</span>
                       </div>
                     )}
 
@@ -814,7 +968,9 @@ export default function ReservationModal({
                                 ? 'Conflicto: Horario Ocupado en este Ambiente'
                                 : (resultadoHorario.tipo_conflicto?.includes('INTER_AREA')
                                   ? 'Restricción de Traslado de Mobiliario Inter-Área (Mínimo 1 Hora)'
-                                  : 'Restricción de Intervalo Logístico (Mismo Ambiente - Mínimo 1 Hora)')}
+                                  : (resultadoHorario.tipo_conflicto?.includes('INTERNO')
+                                    ? 'Conflicto entre Fechas Seleccionadas'
+                                    : 'Restricción de Intervalo Logístico (Mismo Ambiente - Mínimo 1 Hora)'))}
                             </span>
                           </div>
                           <p className="text-rose-800 leading-relaxed text-[11px]">
@@ -839,7 +995,7 @@ export default function ReservationModal({
                       <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2 animate-in fade-in duration-150">
                         <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span className="font-medium text-[11px]">
-                          Horario disponible. Cumple satisfactoriamente con el intervalo logístico de 1 hora.
+                          {resultadoHorario.mensaje || 'Horarios disponibles y conformes con el intervalo logístico de 1 hora.'}
                         </span>
                       </div>
                     )}

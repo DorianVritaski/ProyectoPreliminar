@@ -862,20 +862,41 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                       </span>
                       <strong className="text-slate-900 text-sm">{sol.ambiente_nombre}</strong>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block uppercase font-semibold text-[10px]">
-                        Fecha
-                      </span>
-                      <strong className="text-slate-800">{formatDateFull(sol.fecha_inicio)}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block uppercase font-semibold text-[10px]">
-                        Horario Evento
-                      </span>
-                      <strong className="text-slate-800 font-mono">
-                        {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
-                      </strong>
-                    </div>
+                    {sol.horarios && sol.horarios.length > 1 ? (
+                      <div className="col-span-2">
+                        <span className="text-slate-400 block uppercase font-semibold text-[10px] mb-1">
+                          Fechas y Horarios ({sol.horarios.length}):
+                        </span>
+                        <div className="space-y-1">
+                          {sol.horarios.map((h, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-800 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                              <span className="w-4 h-4 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <strong className="text-slate-900">{formatDateFull(h.fecha_inicio)}:</strong>
+                              <span className="font-mono text-slate-600 font-medium">{formatTimeRange(h.fecha_inicio, h.fecha_fin)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-slate-400 block uppercase font-semibold text-[10px]">
+                            Fecha
+                          </span>
+                          <strong className="text-slate-800">{formatDateFull(sol.fecha_inicio)}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block uppercase font-semibold text-[10px]">
+                            Horario Evento
+                          </span>
+                          <strong className="text-slate-800 font-mono">
+                            {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
+                          </strong>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Recursos solicitados */}

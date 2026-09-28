@@ -48,3 +48,38 @@ def verificar_horario_ambiente(
         solicitud_id_excluir=solicitud_id_excluir,
         buffer_minutos=buffer_minutos
     )
+
+
+from pydantic import BaseModel
+from app.schemas.solicitud import HorarioSlot
+from app.services.disponibilidad import diagnosticar_disponibilidad_multiple
+
+class VerificarHorariosRequest(BaseModel):
+    horarios: list[HorarioSlot]
+    solicitud_id_excluir: int | None = None
+    buffer_minutos: int = 60
+
+@router.post("/{id}/verificar-horarios")
+def verificar_horarios_ambiente(
+    id: int,
+    body: VerificarHorariosRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica en tiempo real si el ambiente está disponible para múltiples fechas y horarios
+    y si cumple con el intervalo logístico de 1 hora entre eventos.
+    """
+    ambiente = db.query(Ambiente).filter(Ambiente.id == id, Ambiente.activo == True).first()
+    if not ambiente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"El ambiente con ID {id} no existe o no está activo."
+        )
+
+    return diagnosticar_disponibilidad_multiple(
+        db=db,
+        ambiente_id=id,
+        horarios=body.horarios,
+        solicitud_id_excluir=body.solicitud_id_excluir,
+        buffer_minutos=body.buffer_minutos
+    )

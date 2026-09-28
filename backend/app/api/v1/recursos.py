@@ -9,7 +9,7 @@ from app.schemas.recurso import (
     DisponibilidadResponse,
     RecursoDisponibilidadItem
 )
-from app.services.disponibilidad import calcular_stock_disponible
+from app.services.disponibilidad import calcular_stock_disponible, calcular_stock_disponible_horarios
 
 router = APIRouter()
 
@@ -44,8 +44,19 @@ def consultar_disponibilidad(
     """
     Especificación SDD 5.B:
     POST /api/v1/recursos/disponibilidad
-    Devuelve el saldo libre de cada bien para esa franja horaria.
+    Devuelve el saldo libre de cada bien para una franja horaria o conjunto de horarios.
     """
+    if body.horarios and len(body.horarios) > 0:
+        horarios_tuples = [(h.fecha_inicio, h.fecha_fin) for h in body.horarios]
+        disponibles = calcular_stock_disponible_horarios(db, horarios_tuples)
+        items = [RecursoDisponibilidadItem(**item) for item in disponibles]
+        return DisponibilidadResponse(
+            fecha_inicio=body.horarios[0].fecha_inicio,
+            fecha_fin=body.horarios[-1].fecha_fin,
+            horarios=body.horarios,
+            recursos=items
+        )
+
     disponibles = calcular_stock_disponible(
         db=db,
         fecha_inicio=body.fecha_inicio,
