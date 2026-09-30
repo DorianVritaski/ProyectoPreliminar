@@ -50,10 +50,12 @@ export default function FilterBar({
           <span className="text-slate-500 font-semibold text-[11px] uppercase tracking-wider">
             Leyenda:
           </span>
+          {/*
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
             <span className="text-slate-700">Libre</span>
           </div>
+          */}
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
             <span className="text-slate-700">Ocupado</span>
@@ -79,11 +81,10 @@ export default function FilterBar({
             <button
               key={item.id}
               onClick={() => onToggleCriticalItem(item.resourceName)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
-                isSelected
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${isSelected
                   ? 'bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-500/20 ring-2 ring-brand-500/20'
                   : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-              }`}
+                }`}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{item.label}</span>

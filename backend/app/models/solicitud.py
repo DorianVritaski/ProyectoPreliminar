@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, CheckConstraint, Text, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -25,6 +25,7 @@ class Solicitud(Base):
     requiere_ssoma = Column(Boolean, default=False)
     url_sctr_pdf = Column(String(500), nullable=True)
     url_personal_externo_pdf = Column(String(500), nullable=True)
+    documentos_ssoma = Column(JSON, nullable=True)
     lineamientos_ssoma = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

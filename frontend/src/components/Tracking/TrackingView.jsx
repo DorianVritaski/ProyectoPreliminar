@@ -415,35 +415,70 @@ export default function TrackingView({ initialSearchQuery = '' }) {
 
                 {/* Documentación SSOMA de Proveedores / Personal Externo */}
                 {sol.requiere_ssoma && (
-                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs flex flex-wrap items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2 text-emerald-950 font-bold">
-                      <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Protocolo SSOMA (Proveedores / Personal Externo):</span>
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-950 font-bold">
+                        <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Protocolo SSOMA (Proveedores / Personal Externo):</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                        {(sol.documentos_ssoma?.length || 1)} {((sol.documentos_ssoma?.length || 1) === 1 ? 'Proveedor' : 'Proveedores')}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {sol.url_sctr_pdf && (
-                        <button
-                          type="button"
-                          onClick={() => window.open(api.getFileUrl(sol.url_sctr_pdf), '_blank')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Ver SCTR (PDF)</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </button>
-                      )}
-                      {sol.url_personal_externo_pdf && (
-                        <button
-                          type="button"
-                          onClick={() => window.open(api.getFileUrl(sol.url_personal_externo_pdf), '_blank')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Ver Personal Externo (PDF)</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+
+                    {(() => {
+                      const proveedores = (sol.documentos_ssoma && sol.documentos_ssoma.length > 0)
+                        ? sol.documentos_ssoma
+                        : [
+                            {
+                              nombre: 'Proveedor Principal',
+                              url_sctr_pdf: sol.url_sctr_pdf,
+                              url_personal_externo_pdf: sol.url_personal_externo_pdf,
+                            },
+                          ];
+
+                      return (
+                        <div className="space-y-1.5">
+                          {proveedores.map((prov, pIdx) => (
+                            <div
+                              key={pIdx}
+                              className="p-2.5 bg-white/90 rounded-xl border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            >
+                              <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                                <span className="w-4 h-4 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">
+                                  {pIdx + 1}
+                                </span>
+                                <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {prov.url_sctr_pdf && (
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(api.getFileUrl(prov.url_sctr_pdf), '_blank')}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-2xs"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>Ver SCTR (PDF)</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {prov.url_personal_externo_pdf && (
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(api.getFileUrl(prov.url_personal_externo_pdf), '_blank')}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-2xs"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>Ver Personal Externo (PDF)</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 

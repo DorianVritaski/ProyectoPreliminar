@@ -749,43 +749,73 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
                     {sol.requiere_ssoma ? (
                       <div className="space-y-3">
                         {/* Acceso a Documentos PDF de Garita */}
-                        <div className="flex flex-wrap gap-2.5">
-                          {sol.url_personal_externo_pdf ? (
-                            <a
-                              href={sol.url_personal_externo_pdf}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
-                              title="Abrir lista de nombres y DNI para verificar en puerta"
-                            >
-                              <FileText className="w-4 h-4 text-amber-700" />
-                              <span>Ver Lista de Personal Externo (PDF)</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-amber-600 ml-1" />
-                            </a>
-                          ) : (
-                            <span className="text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 font-semibold">
-                              ⚠️ Falta adjuntar nómina de personal externo
-                            </span>
-                          )}
+                        {(() => {
+                          const proveedores = (sol.documentos_ssoma && sol.documentos_ssoma.length > 0)
+                            ? sol.documentos_ssoma
+                            : [
+                                {
+                                  nombre: 'Proveedor Principal',
+                                  url_sctr_pdf: sol.url_sctr_pdf,
+                                  url_personal_externo_pdf: sol.url_personal_externo_pdf,
+                                },
+                              ];
 
-                          {sol.url_sctr_pdf ? (
-                            <a
-                              href={sol.url_sctr_pdf}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
-                              title="Verificar póliza de seguro de trabajo de riesgo"
-                            >
-                              <FileText className="w-4 h-4 text-amber-700" />
-                              <span>Ver Póliza SCTR (PDF)</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-amber-600 ml-1" />
-                            </a>
-                          ) : (
-                            <span className="text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 font-semibold">
-                              ⚠️ Falta adjuntar póliza SCTR
-                            </span>
-                          )}
-                        </div>
+                          return (
+                            <div className="space-y-2">
+                              {proveedores.map((prov, pIdx) => (
+                                <div
+                                  key={pIdx}
+                                  className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                                >
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                                    <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0">
+                                      {pIdx + 1}
+                                    </span>
+                                    <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    {prov.url_personal_externo_pdf ? (
+                                      <a
+                                        href={prov.url_personal_externo_pdf}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
+                                        title="Abrir lista de nombres y DNI para verificar en puerta"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Personal Externo (PDF)</span>
+                                        <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
+                                      </a>
+                                    ) : (
+                                      <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
+                                        ⚠️ Nómina no adjunta
+                                      </span>
+                                    )}
+
+                                    {prov.url_sctr_pdf ? (
+                                      <a
+                                        href={prov.url_sctr_pdf}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
+                                        title="Verificar póliza de seguro de trabajo de riesgo"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                        <span>Póliza SCTR (PDF)</span>
+                                        <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
+                                      </a>
+                                    ) : (
+                                      <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
+                                        ⚠️ SCTR no adjunto
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
 
                         {/* Caja de Lineamientos de Seguridad SSOMA */}
                         {sol.lineamientos_ssoma ? (

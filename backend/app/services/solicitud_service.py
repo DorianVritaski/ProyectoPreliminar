@@ -109,6 +109,25 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
     fecha_fin_sol = max(h["fecha_fin"] for h in horarios_req)
 
     codigo_ticket = generar_codigo_ticket(db, anio=fecha_inicio_sol.year)
+    # Documentos SSOMA de proveedores externos
+    docs_ssoma_dict = None
+    if data.documentos_ssoma:
+        docs_ssoma_dict = [d.model_dump() if hasattr(d, "model_dump") else (d.dict() if hasattr(d, "dict") else dict(d)) for d in data.documentos_ssoma]
+    elif data.requiere_ssoma and (data.url_sctr_pdf or data.url_personal_externo_pdf):
+        docs_ssoma_dict = [{
+            "nombre": "Proveedor Principal",
+            "url_sctr_pdf": data.url_sctr_pdf.strip() if data.url_sctr_pdf else None,
+            "url_personal_externo_pdf": data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None
+        }]
+
+    url_sctr = data.url_sctr_pdf.strip() if data.url_sctr_pdf else None
+    url_personal = data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None
+    if docs_ssoma_dict and len(docs_ssoma_dict) > 0:
+        if not url_sctr:
+            url_sctr = docs_ssoma_dict[0].get("url_sctr_pdf")
+        if not url_personal:
+            url_personal = docs_ssoma_dict[0].get("url_personal_externo_pdf")
+
     solicitud = Solicitud(
         codigo_ticket=codigo_ticket,
         correo_solicitante=data.correo_solicitante,
@@ -123,8 +142,9 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         croquis_url=data.croquis_url.strip() if data.croquis_url else None,
         protocolo_ssoma=data.protocolo_ssoma,
         requiere_ssoma=data.requiere_ssoma,
-        url_sctr_pdf=data.url_sctr_pdf.strip() if data.url_sctr_pdf else None,
-        url_personal_externo_pdf=data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None,
+        url_sctr_pdf=url_sctr,
+        url_personal_externo_pdf=url_personal,
+        documentos_ssoma=docs_ssoma_dict,
         lineamientos_ssoma=None
     )
     db.add(solicitud)
@@ -313,6 +333,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         requiere_ssoma=getattr(solicitud, "requiere_ssoma", False),
         url_sctr_pdf=getattr(solicitud, "url_sctr_pdf", None),
         url_personal_externo_pdf=getattr(solicitud, "url_personal_externo_pdf", None),
+        documentos_ssoma=getattr(solicitud, "documentos_ssoma", None),
         lineamientos_ssoma=getattr(solicitud, "lineamientos_ssoma", None),
         created_at=solicitud.created_at,
         horarios=horarios_resp,

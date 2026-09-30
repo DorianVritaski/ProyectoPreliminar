@@ -22,6 +22,11 @@ class HorarioSlotResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ProveedorSSOMAItem(BaseModel):
+    nombre: str | None = None
+    url_sctr_pdf: str | None = None
+    url_personal_externo_pdf: str | None = None
+
 class RecursoItemRequest(BaseModel):
     recurso_id: int
     cantidad: int = Field(gt=0, description="Cantidad debe ser mayor a 0")
@@ -40,6 +45,7 @@ class SolicitudCreate(BaseModel):
     requiere_ssoma: bool = False
     url_sctr_pdf: str | None = None
     url_personal_externo_pdf: str | None = None
+    documentos_ssoma: list[ProveedorSSOMAItem] | None = None
     recursos: list[RecursoItemRequest] = []
 
     @field_validator("correo_solicitante")
@@ -107,6 +113,7 @@ class SolicitudResponse(BaseModel):
     requiere_ssoma: bool = False
     url_sctr_pdf: str | None = None
     url_personal_externo_pdf: str | None = None
+    documentos_ssoma: list[ProveedorSSOMAItem] | None = None
     lineamientos_ssoma: str | None = None
     created_at: datetime
     horarios: list[HorarioSlotResponse] = []
