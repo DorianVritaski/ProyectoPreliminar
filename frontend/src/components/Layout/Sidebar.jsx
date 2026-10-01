@@ -33,7 +33,7 @@ export default function Sidebar({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-brand-500/20 overflow-hidden shrink-0">
             <img
-              src="https://yt3.googleusercontent.com/1ORLumOoeu8Iw6nlSGAiorRf4QM4BnEpJG0WteyT0lDDKUYLA0XmtTXu9-4me8HKCA_h_ezxAA=s900-c-k-c0x00ffffff-no-rj"
+              src="https://marketingperu.beglobal.biz/wp-content/uploads/2026/05/Universiadad-Continental-Isotipo.png"
               alt="Logo Gestor de Eventos"
               className="w-full h-full object-contain"
             />
