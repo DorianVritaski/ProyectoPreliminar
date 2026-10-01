@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Search, Building2, ShieldCheck, Lock, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, Search, ShieldCheck, Lock, LayoutDashboard } from 'lucide-react';
 
 export default function Sidebar({
   activeTab,
@@ -31,8 +31,12 @@ export default function Sidebar({
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <Building2 className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-brand-500/20 overflow-hidden shrink-0">
+            <img
+              src="https://yt3.googleusercontent.com/1ORLumOoeu8Iw6nlSGAiorRf4QM4BnEpJG0WteyT0lDDKUYLA0XmtTXu9-4me8HKCA_h_ezxAA=s900-c-k-c0x00ffffff-no-rj"
+              alt="Logo Gestor de Eventos"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-1.5">
@@ -69,14 +73,14 @@ export default function Sidebar({
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-start gap-3 p-3.5 rounded-xl text-left transition-all duration-200 group relative ${isActive
-                  ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-brand-600/30 font-medium'
-                  : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-brand-600/30 font-medium'
+                : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
                 }`}
             >
               <div
                 className={`p-2 rounded-lg transition-colors ${isActive
-                    ? 'bg-white/15 text-white'
-                    : 'bg-slate-800 text-slate-400 group-hover:text-brand-300 group-hover:bg-slate-700'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-slate-800 text-slate-400 group-hover:text-brand-300 group-hover:bg-slate-700'
                   }`}
               >
                 <Icon className="w-5 h-5" />
@@ -105,8 +109,8 @@ export default function Sidebar({
           <button
             onClick={onGoToAdminDashboard}
             className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'admin'
-                ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/30'
-                : 'bg-slate-800/90 text-brand-300 hover:bg-slate-800 border border-brand-500/30'
+              ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/30'
+              : 'bg-slate-800/90 text-brand-300 hover:bg-slate-800 border border-brand-500/30'
               }`}
           >
             <div className="p-1.5 bg-brand-500/20 rounded-lg text-brand-300">
