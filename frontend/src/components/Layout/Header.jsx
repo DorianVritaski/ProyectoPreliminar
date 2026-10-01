@@ -29,7 +29,7 @@ export default function Header({ onOpenReservation }) {
       <div className="flex items-center gap-3">
         <div className="flex flex-col">
           <span className="text-xs font-semibold text-brand-700 uppercase tracking-wider">
-            Campus Universitario Central
+            Campus Huancayo
           </span>
           <span className="text-sm font-bold text-slate-800">
             Sistema de Gestión y Reserva de Espacios y Mobiliario

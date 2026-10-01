@@ -36,7 +36,7 @@ export default function Sidebar({
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-1.5">
-              GestEvents
+              Gestor de Eventos
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">
                 v1.1
               </span>
@@ -68,27 +68,24 @@ export default function Sidebar({
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-start gap-3 p-3.5 rounded-xl text-left transition-all duration-200 group relative ${
-                isActive
+              className={`w-full flex items-start gap-3 p-3.5 rounded-xl text-left transition-all duration-200 group relative ${isActive
                   ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-lg shadow-brand-600/30 font-medium'
                   : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
-              }`}
+                }`}
             >
               <div
-                className={`p-2 rounded-lg transition-colors ${
-                  isActive
+                className={`p-2 rounded-lg transition-colors ${isActive
                     ? 'bg-white/15 text-white'
                     : 'bg-slate-800 text-slate-400 group-hover:text-brand-300 group-hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm leading-snug">{item.label}</div>
                 <div
-                  className={`text-xs truncate ${
-                    isActive ? 'text-brand-100' : 'text-slate-400 group-hover:text-slate-300'
-                  }`}
+                  className={`text-xs truncate ${isActive ? 'text-brand-100' : 'text-slate-400 group-hover:text-slate-300'
+                    }`}
                 >
                   {item.description}
                 </div>
@@ -107,11 +104,10 @@ export default function Sidebar({
         {adminUser ? (
           <button
             onClick={onGoToAdminDashboard}
-            className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${
-              activeTab === 'admin'
+            className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all ${activeTab === 'admin'
                 ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/30'
                 : 'bg-slate-800/90 text-brand-300 hover:bg-slate-800 border border-brand-500/30'
-            }`}
+              }`}
           >
             <div className="p-1.5 bg-brand-500/20 rounded-lg text-brand-300">
               <LayoutDashboard className="w-4 h-4" />

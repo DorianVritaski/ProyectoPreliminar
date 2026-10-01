@@ -401,17 +401,77 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
                     </div>
                   </div>
 
-                  {/* Dates */}
+                  {/* Info Registro / Resumen */}
                   <div className="text-right space-y-0.5">
-                    <div className="text-xs font-bold text-slate-800 flex items-center md:justify-end gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{formatDateFull(sol.fecha_inicio)}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 flex items-center md:justify-end gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}</span>
-                    </div>
+                    {sol.created_at && (
+                      <div className="text-[11px] text-slate-400 flex items-center md:justify-end gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Registrado: <strong className="text-slate-600">{formatDateShort(sol.created_at)}</strong></span>
+                      </div>
+                    )}
+                    {sol.horarios && sol.horarios.length > 1 ? (
+                      <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{sol.horarios.length} fechas programadas</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs font-bold text-slate-800 flex items-center md:justify-end gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>{formatDateFull(sol.fecha_inicio)}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center md:justify-end gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
+                </div>
+
+                {/* Espacio y Horario */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                  <div>
+                    <span className="text-slate-400 block uppercase font-semibold text-[10px]">
+                      Ambiente
+                    </span>
+                    <strong className="text-slate-900 text-sm">{sol.ambiente_nombre}</strong>
+                  </div>
+                  {sol.horarios && sol.horarios.length > 1 ? (
+                    <div className="col-span-2">
+                      <span className="text-slate-400 block uppercase font-semibold text-[10px] mb-1">
+                        Fechas y Horarios ({sol.horarios.length}):
+                      </span>
+                      <div className="space-y-1">
+                        {sol.horarios.map((h, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-800 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                            <span className="w-4 h-4 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <strong className="text-slate-900">{formatDateFull(h.fecha_inicio)}:</strong>
+                            <span className="font-mono text-slate-600 font-medium">{formatTimeRange(h.fecha_inicio, h.fecha_fin)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-slate-400 block uppercase font-semibold text-[10px]">
+                          Fecha
+                        </span>
+                        <strong className="text-slate-800">{formatDateFull(sol.fecha_inicio)}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block uppercase font-semibold text-[10px]">
+                          Horario Evento
+                        </span>
+                        <strong className="text-slate-800 font-mono">
+                          {formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}
+                        </strong>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Requester Details */}
