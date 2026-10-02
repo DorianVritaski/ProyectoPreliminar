@@ -429,6 +429,26 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
                   </div>
                 </div>
 
+                {/* Alerta de Modificación Solicitada */}
+                {(sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN') && (
+                  <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950 shadow-2xs">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold uppercase tracking-wide text-amber-950 text-xs">
+                          ⚠️ Modificación Solicitada por el Solicitante
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">
+                          Re-evaluar SCTR y Personal
+                        </span>
+                      </div>
+                      <p className="text-amber-900 leading-relaxed font-medium">
+                        <strong>Motivo indicado:</strong> &quot;{sol.motivo_modificacion || 'Ajuste de fechas o recursos'}&quot;
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Espacio y Horario */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
                   <div>

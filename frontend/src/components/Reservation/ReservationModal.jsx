@@ -75,6 +75,7 @@ export default function ReservationModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [createdTicket, setCreatedTicket] = useState(null);
+  const [createdPin, setCreatedPin] = useState(null);
   const [copiedTicket, setCopiedTicket] = useState(false);
   const [step3Armed, setStep3Armed] = useState(false);
 
@@ -606,6 +607,7 @@ export default function ReservationModal({
 
       const result = await api.crearSolicitud(payload);
       setCreatedTicket(result.codigo_ticket);
+      setCreatedPin(result.pin_seguridad || null);
       onSuccessCreated?.();
     } catch (err) {
       setErrorMessage(err.message || 'Error al procesar la reserva.');
@@ -616,7 +618,10 @@ export default function ReservationModal({
 
   const handleCopyTicket = () => {
     if (createdTicket) {
-      navigator.clipboard.writeText(createdTicket);
+      const copyText = createdPin
+        ? `Código de Trámite: ${createdTicket}\nPIN de Seguridad: ${createdPin}`
+        : createdTicket;
+      navigator.clipboard.writeText(copyText);
       setCopiedTicket(true);
       setTimeout(() => setCopiedTicket(false), 2500);
     }
@@ -731,27 +736,47 @@ export default function ReservationModal({
                 </p>
               </div>
 
-              {/* Ticket Card */}
-              <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-brand-300 max-w-sm mx-auto space-y-3">
-                <span className="text-xs uppercase font-bold tracking-wider text-slate-500">
-                  Código de Trámite / Ticket
-                </span>
-                <div className="text-2xl font-mono font-extrabold text-brand-700 tracking-wider">
-                  {createdTicket}
+              {/* Ticket Card & PIN de Seguridad */}
+              <div className="p-6 bg-slate-50 rounded-3xl border-2 border-dashed border-brand-300 max-w-md mx-auto space-y-4">
+                <div className="grid grid-cols-2 gap-3 divide-x divide-slate-200">
+                  <div>
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-slate-500 block">
+                      Código de Trámite
+                    </span>
+                    <div className="text-xl sm:text-2xl font-mono font-extrabold text-brand-700 tracking-wider mt-1">
+                      {createdTicket}
+                    </div>
+                  </div>
+                  <div className="pl-3">
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-slate-500 block">
+                      PIN de Seguridad
+                    </span>
+                    <div className="text-xl sm:text-2xl font-mono font-extrabold text-amber-600 tracking-widest mt-1">
+                      {createdPin || '••••'}
+                    </div>
+                  </div>
                 </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 leading-relaxed text-left flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Importante:</strong> Guarda este PIN de 4 dígitos y tu código. Te permitirán solicitar modificaciones o reprogramaciones de fecha y mobiliario en cualquier momento desde la pantalla de seguimiento sin necesidad de llamar ni redactar correos.
+                  </span>
+                </div>
+
                 <button
                   onClick={handleCopyTicket}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors shadow-2xs"
                 >
                   {copiedTicket ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>¡Copiado al portapapeles!</span>
+                      <span>¡Ticket y PIN copiados al portapapeles!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-4 h-4 text-slate-500" />
-                      <span>Copiar Código de Ticket</span>
+                      <span>Copiar Ticket y PIN de Seguridad</span>
                     </>
                   )}
                 </button>

@@ -783,7 +783,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-2">
                 Filtrar por:
               </span>
-              {['PENDIENTE', 'APROBADO', 'RECHAZADO', 'TODAS'].map((est) => (
+              {['PENDIENTE', 'APROBADO', 'RECHAZADO', 'MODIFICACIÓN', 'TODAS'].map((est) => (
                 <button
                   key={est}
                   onClick={() => setFilterEstado(est)}
@@ -792,7 +792,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                 >
-                  {est}
+                  {est === 'MODIFICACIÓN' ? '⚠️ MODIFICACIÓN' : est}
                 </button>
               ))}
             </div>
@@ -835,9 +835,11 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                         <span
                           className={`text-xs font-bold px-3 py-1 rounded-full border ${sol.estado === 'APROBADO'
                             ? 'bg-rose-100 text-rose-800 border-rose-200'
-                            : sol.estado === 'PENDIENTE'
-                              ? 'bg-amber-100 text-amber-800 border-amber-200'
-                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                            : (sol.estado === 'EN REVISIÓN POR MODIFICACIÓN' || sol.edicion_solicitada)
+                              ? 'bg-orange-100 text-orange-800 border-orange-300'
+                              : sol.estado === 'PENDIENTE'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
                             }`}
                         >
                           {sol.estado}
@@ -853,6 +855,26 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                       )}
                     </div>
                   </div>
+
+                  {/* Banner de Modificación Solicitada */}
+                  {(sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN') && (
+                    <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950 shadow-2xs">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold uppercase tracking-wide text-amber-950 text-xs">
+                            ⚠️ Modificación / Reprogramación Solicitada por el Solicitante
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">
+                            Requiere Aprobación
+                          </span>
+                        </div>
+                        <p className="text-amber-900 leading-relaxed font-medium">
+                          <strong>Motivo de la modificación:</strong> &quot;{sol.motivo_modificacion || 'Ajuste de horarios o mobiliario'}&quot;
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Espacio y Horario */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">

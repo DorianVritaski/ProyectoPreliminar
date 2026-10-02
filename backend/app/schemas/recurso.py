@@ -34,6 +34,7 @@ class DisponibilidadRequest(BaseModel):
     fecha_inicio: datetime | None = None
     fecha_fin: datetime | None = None
     horarios: list[DisponibilidadSlot] | None = None
+    solicitud_id_excluir: int | None = None
 
 class RecursoDisponibilidadItem(BaseModel):
     id: int

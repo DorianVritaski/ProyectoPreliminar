@@ -52,6 +52,18 @@ export function getStatusInfo(status) {
         borderColor: 'border-amber-200',
         badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
       };
+    case 'EN REVISIÓN POR MODIFICACIÓN':
+    case 'MODIFICACION':
+    case 'MODIFICACIÓN':
+      return {
+        label: 'Modificación Solicitada',
+        shortLabel: 'En Modificación',
+        color: '#ea580c', // Orange 600
+        textColor: 'text-orange-700',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-300',
+        badgeClass: 'bg-orange-100 text-orange-800 border-orange-300',
+      };
     case 'RECHAZADO':
       return {
         label: 'Rechazado',

@@ -5,11 +5,13 @@ from app.models.solicitud import Solicitud
 from app.schemas.solicitud import (
     SolicitudCreate,
     SolicitudResponse,
+    SolicitudModificacionRequest,
     SolicitudStatusUpdate
 )
 from app.services.solicitud_service import (
     crear_solicitud,
     buscar_solicitudes_seguimiento,
+    solicitar_modificacion,
     formatear_solicitud_response
 )
 
@@ -69,3 +71,18 @@ def actualizar_estado_solicitud(
     db.commit()
     db.refresh(solicitud)
     return formatear_solicitud_response(db, solicitud)
+
+
+@router.post("/{ticket}/solicitar-edicion", response_model=SolicitudResponse)
+@router.post("/{ticket}/modificar", response_model=SolicitudResponse)
+def solicitar_modificacion_solicitud(
+    ticket: str,
+    data: SolicitudModificacionRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Especificación de Reprogramación y Modificación Asíncrona:
+    POST /api/v1/solicitudes/{ticket}/solicitar-edicion
+    Permite modificar horarios, recursos, croquis o SSOMA de una solicitud existente.
+    """
+    return solicitar_modificacion(db, ticket, data)

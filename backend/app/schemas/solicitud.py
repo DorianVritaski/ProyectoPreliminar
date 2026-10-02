@@ -115,6 +115,9 @@ class SolicitudResponse(BaseModel):
     url_personal_externo_pdf: str | None = None
     documentos_ssoma: list[ProveedorSSOMAItem] | None = None
     lineamientos_ssoma: str | None = None
+    edicion_solicitada: bool = False
+    motivo_modificacion: str | None = None
+    pin_seguridad: str | None = None
     created_at: datetime
     horarios: list[HorarioSlotResponse] = []
     recursos: list[SolicitudRecursoDetalleResponse] = []
@@ -128,8 +131,34 @@ class SolicitudResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class SolicitudModificacionRequest(BaseModel):
+    correo_solicitante: str | None = None
+    pin_seguridad: str | None = None
+    motivo_modificacion: str
+    telefono: str | None = None
+    area_solicitante_id: int | None = None
+    ambiente_id: int
+    fecha_inicio: datetime | None = None
+    fecha_fin: datetime | None = None
+    horarios: list[HorarioSlot] | None = None
+    detalles: str | None = None
+    croquis_url: str | None = None
+    protocolo_ssoma: bool = False
+    requiere_ssoma: bool = False
+    url_sctr_pdf: str | None = None
+    url_personal_externo_pdf: str | None = None
+    documentos_ssoma: list[ProveedorSSOMAItem] | None = None
+    recursos: list[RecursoItemRequest] = []
+
+    @field_validator("motivo_modificacion")
+    @classmethod
+    def validate_motivo(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("El motivo de la modificación es obligatorio.")
+        return v.strip()
+
 class SolicitudStatusUpdate(BaseModel):
-    estado: str # PENDIENTE, APROBADO, RECHAZADO
+    estado: str # PENDIENTE, APROBADO, RECHAZADO, EN REVISIÓN POR MODIFICACIÓN
     motivo_rechazo: str | None = None
 
 class AdminLoginRequest(BaseModel):

@@ -92,6 +92,12 @@ export const api = {
   getSeguimiento: (search) =>
     fetchJSON(`/solicitudes/seguimiento?search=${encodeURIComponent(search)}`),
 
+  solicitarModificacion: (codigoTicket, payload) =>
+    fetchJSON(`/solicitudes/${encodeURIComponent(codigoTicket)}/modificar`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   // ------------------------------------------------------------------
   // Módulo de Administración - Jefatura de Operaciones (RF-05)
   // ------------------------------------------------------------------

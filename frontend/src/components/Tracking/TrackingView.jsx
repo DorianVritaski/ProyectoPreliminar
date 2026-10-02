@@ -19,8 +19,11 @@ import {
   Info,
   FileText,
   ShieldAlert,
+  Edit3,
+  KeyRound,
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import ModificarSolicitudModal from './ModificarSolicitudModal';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import { api } from '../../api/client';
 
@@ -30,6 +33,7 @@ export default function TrackingView({ initialSearchQuery = '' }) {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [modifyingSol, setModifyingSol] = useState(null);
 
   useEffect(() => {
     if (initialSearchQuery) {
@@ -185,6 +189,30 @@ export default function TrackingView({ initialSearchQuery = '' }) {
 
                   <StatusBadge status={sol.estado} />
                 </div>
+
+                {/* Banner de Solicitud de Modificación Activa */}
+                {(sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN') && (
+                  <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 shadow-2xs">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-amber-950 text-sm">
+                          ⚠️ Modificación / Reprogramación en Proceso de Evaluación
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">
+                          En Revisión
+                        </span>
+                      </div>
+                      <p className="text-amber-900 leading-relaxed font-medium">
+                        <strong>Motivo del cambio:</strong>{' '}
+                        <span className="italic">&quot;{sol.motivo_modificacion}&quot;</span>
+                      </p>
+                      <p className="text-[11px] text-amber-700">
+                        La Jefatura de Operaciones y las áreas operativas (TI / SSOMA) están evaluando los nuevos horarios o recursos solicitados.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Event Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -510,10 +538,51 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                     </div>
                   </div>
                 )}
+
+                {/* Botón de Modificación / Reprogramación y PIN */}
+                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      {sol.pin_seguridad ? (
+                        <>
+                          PIN de Seguridad: <strong className="font-mono text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{sol.pin_seguridad}</strong>
+                        </>
+                      ) : (
+                        <span>Validación mediante correo registrado o PIN</span>
+                      )}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setModifyingSol(sol)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-brand-700 hover:from-amber-700 hover:to-brand-800 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/15 transition-all active:scale-[0.98]"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>
+                      {sol.estado === 'RECHAZADO'
+                        ? 'Reaperturar / Corregir Solicitud'
+                        : 'Solicitar Modificación / Reprogramar'}
+                    </span>
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
+      )}
+
+      {/* Modal de Modificación / Reprogramación */}
+      {modifyingSol && (
+        <ModificarSolicitudModal
+          isOpen={Boolean(modifyingSol)}
+          solicitud={modifyingSol}
+          onClose={() => setModifyingSol(null)}
+          onSuccessUpdated={async () => {
+            await executeSearch(query);
+          }}
+        />
       )}
     </div>
   );

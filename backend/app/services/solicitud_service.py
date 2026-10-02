@@ -13,6 +13,7 @@ from app.models.area_solicitante import AreaSolicitante
 from app.schemas.solicitud import (
     SolicitudCreate,
     SolicitudResponse,
+    SolicitudModificacionRequest,
     SolicitudRecursoDetalleResponse,
     ConformidadAreaResponse,
     HorarioSlotResponse
@@ -109,6 +110,8 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
     fecha_fin_sol = max(h["fecha_fin"] for h in horarios_req)
 
     codigo_ticket = generar_codigo_ticket(db, anio=fecha_inicio_sol.year)
+    pin_seguridad = "".join(random.choices(string.digits, k=4))
+
     # Documentos SSOMA de proveedores externos
     docs_ssoma_dict = None
     if data.documentos_ssoma:
@@ -138,6 +141,9 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         fecha_fin=fecha_fin_sol,
         estado="PENDIENTE",
         motivo_rechazo=None,
+        edicion_solicitada=False,
+        motivo_modificacion=None,
+        pin_seguridad=pin_seguridad,
         detalles=data.detalles.strip() if data.detalles else None,
         croquis_url=data.croquis_url.strip() if data.croquis_url else None,
         protocolo_ssoma=data.protocolo_ssoma,
@@ -335,6 +341,9 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         url_personal_externo_pdf=getattr(solicitud, "url_personal_externo_pdf", None),
         documentos_ssoma=getattr(solicitud, "documentos_ssoma", None),
         lineamientos_ssoma=getattr(solicitud, "lineamientos_ssoma", None),
+        edicion_solicitada=bool(getattr(solicitud, "edicion_solicitada", False)),
+        motivo_modificacion=getattr(solicitud, "motivo_modificacion", None),
+        pin_seguridad=getattr(solicitud, "pin_seguridad", None),
         created_at=solicitud.created_at,
         horarios=horarios_resp,
         recursos=recursos_resp,
@@ -345,6 +354,198 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         conformidad_ssoma_aprobada=conformidad_ssoma_ok if requiere_ssoma_conf else True,
         todas_conformidades_aprobadas=todas_ok
     )
+
+
+def solicitar_modificacion(db: Session, codigo_ticket: str, data: SolicitudModificacionRequest) -> SolicitudResponse:
+    ticket_clean = codigo_ticket.strip().upper()
+    solicitud = db.query(Solicitud).filter(Solicitud.codigo_ticket == ticket_clean).first()
+    if not solicitud:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"La solicitud con código de ticket '{ticket_clean}' no fue encontrada."
+        )
+
+    # 1. Validación de identidad liviana: correo del solicitante O pin_seguridad
+    correo_req = (data.correo_solicitante or "").strip().lower()
+    sol_correo = (solicitud.correo_solicitante or "").strip().lower()
+    pin_req = (data.pin_seguridad or "").strip()
+    sol_pin = (solicitud.pin_seguridad or "").strip()
+
+    correo_valido = bool(correo_req and correo_req == sol_correo)
+    pin_valido = bool(pin_req and sol_pin and pin_req == sol_pin)
+
+    if not correo_valido and not pin_valido:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Autenticación requerida: El correo electrónico o el PIN de seguridad de 4 dígitos no coinciden con los registrados para este ticket."
+        )
+
+    # 2. Validar que el ambiente exista y esté activo
+    ambiente = db.query(Ambiente).filter(Ambiente.id == data.ambiente_id, Ambiente.activo == True).first()
+    if not ambiente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"El ambiente con ID {data.ambiente_id} no existe o no está activo."
+        )
+
+    # 3. Validar área solicitante si se envía
+    if data.area_solicitante_id:
+        area_sol = db.query(AreaSolicitante).filter(
+            AreaSolicitante.id == data.area_solicitante_id,
+            AreaSolicitante.activa == True
+        ).first()
+        if not area_sol:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"El área solicitante con ID {data.area_solicitante_id} no existe o no está activa."
+            )
+
+    # 4. Extraer horarios solicitados
+    horarios_req = []
+    if data.horarios and len(data.horarios) > 0:
+        for h in data.horarios:
+            horarios_req.append({"fecha_inicio": h.fecha_inicio, "fecha_fin": h.fecha_fin})
+    elif data.fecha_inicio and data.fecha_fin:
+        horarios_req.append({"fecha_inicio": data.fecha_inicio, "fecha_fin": data.fecha_fin})
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe proporcionar al menos una fecha y horario para la solicitud."
+        )
+
+    # 5. Validar disponibilidad de ambiente e intervalo logístico EXCLUYENDO esta misma solicitud
+    diag = diagnosticar_disponibilidad_multiple(
+        db,
+        ambiente_id=data.ambiente_id,
+        horarios=horarios_req,
+        solicitud_id_excluir=solicitud.id
+    )
+    if not diag["disponible"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=diag["mensaje"]
+        )
+
+    # 6. Validar disponibilidad de stock de recursos EXCLUYENDO esta misma solicitud
+    if data.recursos:
+        stock_info = {
+            item["id"]: item for item in calcular_stock_disponible_horarios(db, horarios_req, solicitud_id_excluir=solicitud.id)
+        }
+        for req in data.recursos:
+            recurso_stat = stock_info.get(req.recurso_id)
+            if not recurso_stat:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"El recurso con ID {req.recurso_id} no existe en el catálogo."
+                )
+            disponible = recurso_stat["stock_disponible"]
+            if req.cantidad > disponible:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Stock insuficiente para '{recurso_stat['nombre']}'. "
+                        f"Solicitado: {req.cantidad}, Disponible para estas fechas: {disponible}."
+                    )
+                )
+
+    # 7. Preparar documentos SSOMA
+    docs_ssoma_dict = None
+    if data.documentos_ssoma:
+        docs_ssoma_dict = [d.model_dump() if hasattr(d, "model_dump") else (d.dict() if hasattr(d, "dict") else dict(d)) for d in data.documentos_ssoma]
+    elif data.requiere_ssoma and (data.url_sctr_pdf or data.url_personal_externo_pdf):
+        docs_ssoma_dict = [{
+            "nombre": "Proveedor Principal",
+            "url_sctr_pdf": data.url_sctr_pdf.strip() if data.url_sctr_pdf else None,
+            "url_personal_externo_pdf": data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None
+        }]
+
+    url_sctr = data.url_sctr_pdf.strip() if data.url_sctr_pdf else None
+    url_personal = data.url_personal_externo_pdf.strip() if data.url_personal_externo_pdf else None
+    if docs_ssoma_dict and len(docs_ssoma_dict) > 0:
+        if not url_sctr:
+            url_sctr = docs_ssoma_dict[0].get("url_sctr_pdf")
+        if not url_personal:
+            url_personal = docs_ssoma_dict[0].get("url_personal_externo_pdf")
+
+    # Fechas consolidadas
+    fecha_inicio_sol = min(h["fecha_inicio"] for h in horarios_req)
+    fecha_fin_sol = max(h["fecha_fin"] for h in horarios_req)
+
+    # 8. Aplicar cambios a la solicitud existente
+    solicitud.ambiente_id = data.ambiente_id
+    if data.area_solicitante_id:
+        solicitud.area_solicitante_id = data.area_solicitante_id
+    if data.telefono:
+        solicitud.telefono = data.telefono.strip()
+    solicitud.fecha_inicio = fecha_inicio_sol
+    solicitud.fecha_fin = fecha_fin_sol
+    solicitud.detalles = data.detalles.strip() if data.detalles else None
+    solicitud.croquis_url = data.croquis_url.strip() if data.croquis_url else None
+    solicitud.protocolo_ssoma = data.protocolo_ssoma
+    solicitud.requiere_ssoma = data.requiere_ssoma
+    solicitud.url_sctr_pdf = url_sctr
+    solicitud.url_personal_externo_pdf = url_personal
+    solicitud.documentos_ssoma = docs_ssoma_dict
+    
+    solicitud.edicion_solicitada = True
+    solicitud.motivo_modificacion = data.motivo_modificacion.strip()
+    solicitud.motivo_rechazo = None # Se limpia rechazo previo al corregir y reabrir
+    solicitud.estado = "EN REVISIÓN POR MODIFICACIÓN"
+
+    # Actualizar horarios en BD
+    db.query(SolicitudHorario).filter(SolicitudHorario.solicitud_id == solicitud.id).delete()
+    for h in horarios_req:
+        slot_db = SolicitudHorario(
+            solicitud_id=solicitud.id,
+            fecha_inicio=h["fecha_inicio"],
+            fecha_fin=h["fecha_fin"]
+        )
+        db.add(slot_db)
+
+    # Actualizar recursos en BD
+    db.query(SolicitudRecurso).filter(SolicitudRecurso.solicitud_id == solicitud.id).delete()
+    areas_involucradas = set()
+    if data.requiere_ssoma:
+        ssoma_area = db.query(AreaDestino).filter(AreaDestino.nombre.ilike("%SSOMA%")).first()
+        areas_involucradas.add(ssoma_area.id if ssoma_area else 7)
+
+    for req in data.recursos:
+        sol_rec = SolicitudRecurso(
+            solicitud_id=solicitud.id,
+            recurso_id=req.recurso_id,
+            cantidad=req.cantidad
+        )
+        db.add(sol_rec)
+        rec_obj = db.query(Recurso).filter(Recurso.id == req.recurso_id).first()
+        if rec_obj and rec_obj.area_destino_id and rec_obj.area_destino_id not in (1, 3):
+            areas_involucradas.add(rec_obj.area_destino_id)
+
+    # Actualizar conformidades técnicas: resetear existentes o crear nuevas
+    existing_confs = db.query(SolicitudConformidad).filter(SolicitudConformidad.solicitud_id == solicitud.id).all()
+    existing_areas = {c.area_destino_id: c for c in existing_confs}
+
+    for area_id in areas_involucradas:
+        if area_id in existing_areas:
+            existing_areas[area_id].estado = "PENDIENTE"
+            existing_areas[area_id].observacion = None
+            existing_areas[area_id].updated_at = datetime.utcnow()
+        else:
+            new_conf = SolicitudConformidad(
+                solicitud_id=solicitud.id,
+                area_destino_id=area_id,
+                estado="PENDIENTE"
+            )
+            db.add(new_conf)
+
+    # Remover conformidades de áreas que ya no participan
+    for area_id, conf_obj in existing_areas.items():
+        if area_id not in areas_involucradas:
+            db.delete(conf_obj)
+
+    db.commit()
+    db.refresh(solicitud)
+
+    return formatear_solicitud_response(db, solicitud)
 
 
 def buscar_solicitudes_seguimiento(db: Session, search: str) -> list[SolicitudResponse]:

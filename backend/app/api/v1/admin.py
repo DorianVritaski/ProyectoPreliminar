@@ -132,7 +132,18 @@ def listar_todas_las_solicitudes(
 ):
     query = db.query(Solicitud).order_by(Solicitud.created_at.desc())
     if estado and estado.upper() not in ["TODAS", "TODOS", "ALL"]:
-        query = query.filter(Solicitud.estado == estado.upper())
+        est_upper = estado.upper()
+        if est_upper == "PENDIENTE":
+            query = query.filter(Solicitud.estado.in_(["PENDIENTE", "EN REVISIÓN POR MODIFICACIÓN"]))
+        elif est_upper in ["MODIFICACION", "MODIFICACIÓN"]:
+            query = query.filter(
+                or_(
+                    Solicitud.estado == "EN REVISIÓN POR MODIFICACIÓN",
+                    Solicitud.edicion_solicitada == True
+                )
+            )
+        else:
+            query = query.filter(Solicitud.estado == est_upper)
     
     if area_destino_id is not None:
         # Área 3 (Seguridad Interna y Vigilancia) es un panel de monitoreo general que visualiza todas las solicitudes
@@ -287,6 +298,7 @@ def actualizar_estado_solicitud_admin(
             )
 
         solicitud.motivo_rechazo = None
+        solicitud.edicion_solicitada = False
     elif body.motivo_rechazo is not None:
         solicitud.motivo_rechazo = body.motivo_rechazo
 

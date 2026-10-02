@@ -48,7 +48,11 @@ def consultar_disponibilidad(
     """
     if body.horarios and len(body.horarios) > 0:
         horarios_tuples = [(h.fecha_inicio, h.fecha_fin) for h in body.horarios]
-        disponibles = calcular_stock_disponible_horarios(db, horarios_tuples)
+        disponibles = calcular_stock_disponible_horarios(
+            db,
+            horarios_tuples,
+            solicitud_id_excluir=body.solicitud_id_excluir
+        )
         items = [RecursoDisponibilidadItem(**item) for item in disponibles]
         return DisponibilidadResponse(
             fecha_inicio=body.horarios[0].fecha_inicio,
@@ -60,7 +64,8 @@ def consultar_disponibilidad(
     disponibles = calcular_stock_disponible(
         db=db,
         fecha_inicio=body.fecha_inicio,
-        fecha_fin=body.fecha_fin
+        fecha_fin=body.fecha_fin,
+        solicitud_id_excluir=body.solicitud_id_excluir
     )
     items = [RecursoDisponibilidadItem(**item) for item in disponibles]
     return DisponibilidadResponse(

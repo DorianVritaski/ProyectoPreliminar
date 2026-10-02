@@ -17,8 +17,11 @@ class Solicitud(Base):
     ambiente_id = Column(Integer, ForeignKey("ambientes.id"), nullable=False)
     fecha_inicio = Column(DateTime, nullable=False, index=True)
     fecha_fin = Column(DateTime, nullable=False, index=True)
-    estado = Column(String(20), default="PENDIENTE", nullable=False, index=True) # PENDIENTE, APROBADO, RECHAZADO
+    estado = Column(String(50), default="PENDIENTE", nullable=False, index=True) # PENDIENTE, APROBADO, RECHAZADO, EN REVISIÓN POR MODIFICACIÓN
     motivo_rechazo = Column(Text, nullable=True)
+    edicion_solicitada = Column(Boolean, default=False)
+    motivo_modificacion = Column(Text, nullable=True)
+    pin_seguridad = Column(String(10), nullable=True)
     detalles = Column(Text, nullable=True)
     croquis_url = Column(Text, nullable=True)
     protocolo_ssoma = Column(Boolean, default=False)
