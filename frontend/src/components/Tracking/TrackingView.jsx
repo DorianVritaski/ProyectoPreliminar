@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ModificarSolicitudModal from './ModificarSolicitudModal';
-import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
+import { formatTime, formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import { api } from '../../api/client';
 
 export default function TrackingView({ initialSearchQuery = '' }) {
@@ -178,9 +178,11 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                       <span className="font-mono font-extrabold text-lg text-brand-700">
                         {sol.codigo_ticket}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        • Registrado el {formatDateShort(sol.created_at)}
-                      </span>
+                      {sol.created_at && (
+                        <span className="text-xs text-slate-400">
+                          • Registrado el {formatDateShort(sol.created_at, true)} ({formatTime(sol.created_at, true)})
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-600 font-medium mt-0.5">
                       Área: <strong className="text-slate-900">{sol.area_solicitante}</strong>

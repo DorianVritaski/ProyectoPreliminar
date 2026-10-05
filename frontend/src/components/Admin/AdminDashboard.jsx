@@ -218,8 +218,14 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
   const handleApprove = async (id) => {
     setActionInProgress(id);
     try {
+      const targetSol = solicitudes.find((s) => s.id === id);
+      const isModif = targetSol?.edicion_solicitada || targetSol?.estado === 'EN REVISIÓN POR MODIFICACIÓN';
       await api.adminUpdateSolicitudEstado(id, 'APROBADO');
-      showFeedback('Solicitud APROBADA exitosamente. Espacio y recursos reservados formalmente.');
+      showFeedback(
+        isModif
+          ? 'Modificación APROBADA exitosamente. Los nuevos horarios y recursos han sido consolidados.'
+          : 'Solicitud APROBADA exitosamente. Espacio y recursos reservados formalmente.'
+      );
       loadSolicitudes();
       onRefreshPublicData?.();
     } catch (err) {
@@ -231,15 +237,24 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
 
   const handleOpenRejectModal = (sol) => {
     setRejectingSolicitud(sol);
-    setMotivoRechazo('Por motivos de aforo o mantenimiento preventivo programado.');
+    if (sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN') {
+      setMotivoRechazo('La modificación solicitada no cumple con la disponibilidad de aforo o lineamientos operativos.');
+    } else {
+      setMotivoRechazo('Por motivos de aforo o mantenimiento preventivo programado.');
+    }
   };
 
   const handleConfirmReject = async () => {
     if (!rejectingSolicitud) return;
     setActionInProgress(rejectingSolicitud.id);
+    const isModif = rejectingSolicitud.edicion_solicitada || rejectingSolicitud.estado === 'EN REVISIÓN POR MODIFICACIÓN';
     try {
       await api.adminUpdateSolicitudEstado(rejectingSolicitud.id, 'RECHAZADO', motivoRechazo);
-      showFeedback('Solicitud RECHAZADA. Se ha liberado la disponibilidad en el calendario.');
+      showFeedback(
+        isModif
+          ? 'Modificación DESESTIMADA / RECHAZADA. Se ha registrado la justificación.'
+          : 'Solicitud RECHAZADA. Se ha liberado la disponibilidad en el calendario.'
+      );
       setRejectingSolicitud(null);
       loadSolicitudes();
       onRefreshPublicData?.();
@@ -849,7 +864,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
                           <span>
-                            Registrado: <strong className="text-slate-700">{formatDateShort(sol.created_at)}</strong> ({formatTime(sol.created_at)})
+                            Registrado: <strong className="text-slate-700">{formatDateShort(sol.created_at, true)}</strong> ({formatTime(sol.created_at, true)})
                           </span>
                         </div>
                       )}
@@ -1224,10 +1239,24 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                               : 'Aprobación bloqueada: Requiere previa Conformidad de TI'}
                           </span>
                         )}
+                        {sol.requiere_conformidad_ssoma && !sol.conformidad_ssoma_aprobada && (
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl font-medium border ${
+                            sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada ? 'ml-2' : ''
+                          } ${
+                            sol.conformidades?.some(c => (c.area_destino_id === 7 || c.area_destino_nombre?.toUpperCase().includes('SSOMA')) && c.estado === 'OBSERVADO')
+                              ? 'text-rose-800 bg-rose-50 border-rose-200'
+                              : 'text-amber-700 bg-amber-50 border-amber-200'
+                          }`}>
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                            {sol.conformidades?.some(c => (c.area_destino_id === 7 || c.area_destino_nombre?.toUpperCase().includes('SSOMA')) && c.estado === 'OBSERVADO')
+                              ? 'Aprobación bloqueada: SSOMA registró observaciones pendientes'
+                              : 'Aprobación bloqueada: Requiere previa Conformidad de SSOMA'}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {sol.estado === 'PENDIENTE' && (
+                        {(sol.estado === 'PENDIENTE' || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN' || sol.edicion_solicitada) && (
                           <>
                             <button
                               onClick={() => handleOpenRejectModal(sol)}
@@ -1235,33 +1264,49 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-bold border border-slate-200 transition-colors"
                             >
                               <XCircle className="w-4 h-4" />
-                              <span>Rechazar Solicitud</span>
+                              <span>
+                                {sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN'
+                                  ? 'Desestimar Modificación'
+                                  : 'Rechazar Solicitud'}
+                              </span>
                             </button>
 
                             <button
                               onClick={() => handleApprove(sol.id)}
                               disabled={
                                 actionInProgress === sol.id ||
-                                (sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada)
+                                (sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada) ||
+                                (sol.requiere_conformidad_ssoma && !sol.conformidad_ssoma_aprobada)
                               }
                               title={
                                 sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada
                                   ? 'No puede aprobar hasta que TI otorgue su conformidad'
-                                  : 'Aprobar definitivamente'
+                                  : sol.requiere_conformidad_ssoma && !sol.conformidad_ssoma_aprobada
+                                    ? 'No puede aprobar hasta que SSOMA otorgue su conformidad'
+                                    : (sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN')
+                                      ? 'Aprobar y consolidar la versión modificada de la solicitud'
+                                      : 'Aprobar definitivamente'
                               }
                               className={`flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
-                                sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada
+                                (sol.requiere_conformidad_ti && !sol.conformidad_ti_aprobada) ||
+                                (sol.requiere_conformidad_ssoma && !sol.conformidad_ssoma_aprobada)
                                   ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                                  : (sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN')
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/25 ring-2 ring-emerald-500/20'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
                               }`}
                             >
                               <CheckCircle className="w-4 h-4" />
-                              <span>Aprobar Solicitud (Final)</span>
+                              <span>
+                                {sol.edicion_solicitada || sol.estado === 'EN REVISIÓN POR MODIFICACIÓN'
+                                  ? 'Aprobar Modificación'
+                                  : 'Aprobar Solicitud (Final)'}
+                              </span>
                             </button>
                           </>
                         )}
 
-                        {sol.estado === 'APROBADO' && (
+                        {sol.estado === 'APROBADO' && !sol.edicion_solicitada && (
                           <button
                             onClick={() => handleOpenRejectModal(sol)}
                             disabled={actionInProgress === sol.id}
@@ -1271,7 +1316,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                           </button>
                         )}
 
-                        {sol.estado === 'RECHAZADO' && (
+                        {sol.estado === 'RECHAZADO' && !sol.edicion_solicitada && (
                           <button
                             onClick={() => handleApprove(sol.id)}
                             disabled={actionInProgress === sol.id}
@@ -1749,7 +1794,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                         {user.activo ? 'Activo' : 'Suspendido'}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-400">{formatDateShort(user.created_at)}</td>
+                    <td className="p-3 text-slate-400">{formatDateShort(user.created_at, true)}</td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -1785,16 +1830,20 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
         </div>
       )}
 
-      {/* Modal: Rechazar Solicitud */}
+      {/* Modal: Rechazar / Desestimar Solicitud */}
       {rejectingSolicitud && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-rose-600" />
-              Rechazar Solicitud ({rejectingSolicitud.codigo_ticket})
+              {rejectingSolicitud.edicion_solicitada || rejectingSolicitud.estado === 'EN REVISIÓN POR MODIFICACIÓN'
+                ? `Desestimar / Rechazar Modificación (${rejectingSolicitud.codigo_ticket})`
+                : `Rechazar Solicitud (${rejectingSolicitud.codigo_ticket})`}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Indique el motivo por el cual se deniega la reserva. Esta justificación quedará visible para el solicitante al rastrear su trámite.
+              {rejectingSolicitud.edicion_solicitada || rejectingSolicitud.estado === 'EN REVISIÓN POR MODIFICACIÓN'
+                ? 'Indique el motivo por el cual se desestima la modificación o se rechaza la solicitud. Esta justificación quedará registrada y visible para el solicitante.'
+                : 'Indique el motivo por el cual se deniega la reserva. Esta justificación quedará visible para el solicitante al rastrear su trámite.'}
             </p>
 
             <textarea
@@ -1802,7 +1851,7 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-brand-500"
-              placeholder="Escriba la razón de rechazo..."
+              placeholder="Escriba la justificación o razón..."
             />
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -1816,7 +1865,9 @@ export default function AdminDashboard({ adminUser, onLogout, onRefreshPublicDat
                 onClick={handleConfirmReject}
                 className="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md shadow-rose-600/20"
               >
-                Confirmar Rechazo
+                {rejectingSolicitud.edicion_solicitada || rejectingSolicitud.estado === 'EN REVISIÓN POR MODIFICACIÓN'
+                  ? 'Confirmar Desestimación / Rechazo'
+                  : 'Confirmar Rechazo'}
               </button>
             </div>
           </div>

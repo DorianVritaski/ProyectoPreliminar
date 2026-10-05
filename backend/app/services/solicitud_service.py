@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -344,7 +344,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         edicion_solicitada=bool(getattr(solicitud, "edicion_solicitada", False)),
         motivo_modificacion=getattr(solicitud, "motivo_modificacion", None),
         pin_seguridad=getattr(solicitud, "pin_seguridad", None),
-        created_at=solicitud.created_at,
+        created_at=solicitud.created_at.replace(tzinfo=timezone.utc) if (solicitud.created_at and solicitud.created_at.tzinfo is None) else solicitud.created_at,
         horarios=horarios_resp,
         recursos=recursos_resp,
         conformidades=conformidades_resp,

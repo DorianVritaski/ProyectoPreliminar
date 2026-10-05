@@ -1,6 +1,10 @@
-export function formatTime(dateStr) {
+export function formatTime(dateStr, isUtc = false) {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  let str = dateStr;
+  if (isUtc && typeof str === 'string' && !str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
+    str = str.includes('T') ? `${str}Z` : `${str.replace(' ', 'T')}Z`;
+  }
+  const date = new Date(str);
   return date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
@@ -15,14 +19,30 @@ export function formatDateFull(dateStr) {
   });
 }
 
-export function formatDateShort(dateStr) {
+export function formatDateShort(dateStr, isUtc = false) {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  let str = dateStr;
+  if (isUtc && typeof str === 'string' && !str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
+    str = str.includes('T') ? `${str}Z` : `${str.replace(' ', 'T')}Z`;
+  }
+  const date = new Date(str);
   return date.toLocaleDateString('es-PE', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+export function formatAuditDateTime(dateStr) {
+  if (!dateStr) return { fecha: '', hora: '', full: '' };
+  let str = dateStr;
+  if (typeof str === 'string' && !str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
+    str = str.includes('T') ? `${str}Z` : `${str.replace(' ', 'T')}Z`;
+  }
+  const date = new Date(str);
+  const fecha = date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const hora = date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return { fecha, hora, full: `${fecha} (${hora})` };
 }
 
 export function formatTimeRange(startStr, endStr) {

@@ -406,7 +406,7 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
                     {sol.created_at && (
                       <div className="text-[11px] text-slate-400 flex items-center md:justify-end gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Registrado: <strong className="text-slate-600">{formatDateShort(sol.created_at)}</strong></span>
+                        <span>Registrado: <strong className="text-slate-600">{formatDateShort(sol.created_at, true)}</strong></span>
                       </div>
                     )}
                     {sol.horarios && sol.horarios.length > 1 ? (

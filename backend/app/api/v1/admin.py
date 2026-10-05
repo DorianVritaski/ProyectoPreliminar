@@ -302,6 +302,9 @@ def actualizar_estado_solicitud_admin(
     elif body.motivo_rechazo is not None:
         solicitud.motivo_rechazo = body.motivo_rechazo
 
+    if nuevo_estado in ["APROBADO", "RECHAZADO"]:
+        solicitud.edicion_solicitada = False
+
     solicitud.estado = nuevo_estado
     db.commit()
     db.refresh(solicitud)
