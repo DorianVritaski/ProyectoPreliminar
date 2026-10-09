@@ -671,7 +671,7 @@ export default function AccesosModule() {
               <QRCodeSVG
                 value={
                   typeof window !== 'undefined'
-                    ? `${window.location.origin}/accesos?codigo=${submitSuccess.codigo_acceso}`
+                    ? `${window.location.origin}/?view=accesos&codigo=${submitSuccess.codigo_acceso}`
                     : `ACCESO:${submitSuccess.codigo_acceso}`
                 }
                 size={180}
@@ -859,7 +859,7 @@ export default function AccesosModule() {
                       <QRCodeSVG
                         value={
                           typeof window !== 'undefined'
-                            ? `${window.location.origin}/accesos?codigo=${paseEncontrado.codigo_acceso}`
+                            ? `${window.location.origin}/?view=accesos&codigo=${paseEncontrado.codigo_acceso}`
                             : `ACCESO:${paseEncontrado.codigo_acceso}`
                         }
                         size={210}
