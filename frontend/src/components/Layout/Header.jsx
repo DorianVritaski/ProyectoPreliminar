@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Clock, Calendar, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Clock, Calendar, CheckCircle2, ArrowLeft } from 'lucide-react';
 
-export default function Header({ onOpenReservation }) {
+export default function Header({ onOpenReservation, onBackToHome }) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -25,8 +25,19 @@ export default function Header({ onOpenReservation }) {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm shrink-0 z-10">
-      {/* Campus Info */}
+      {/* Campus Info & Breadcrumb */}
       <div className="flex items-center gap-3">
+        {onBackToHome && (
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-semibold transition-all border border-slate-200 group shadow-2xs mr-1"
+            title="Volver a la Pantalla Principal (Portal de Servicios)"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-slate-500 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="hidden sm:inline">Portal de Servicios</span>
+          </button>
+        )}
         <div className="flex flex-col">
           <span className="text-xs font-semibold text-brand-700 uppercase tracking-wider">
             Campus Huancayo

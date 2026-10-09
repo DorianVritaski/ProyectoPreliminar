@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Search, ShieldCheck, Lock, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, Search, ShieldCheck, Lock, LayoutDashboard, ArrowLeft } from 'lucide-react';
 
 export default function Sidebar({
   activeTab,
@@ -7,6 +7,7 @@ export default function Sidebar({
   adminUser,
   onOpenAdminLogin,
   onGoToAdminDashboard,
+  onBackToHome,
 }) {
   // RF-01.3: La barra lateral de navegación contendrá únicamente dos módulos:
   // 1. Calendario de Eventos
@@ -30,6 +31,20 @@ export default function Sidebar({
     <aside className="w-72 bg-slate-900 text-slate-100 flex flex-col shrink-0 border-r border-slate-800 shadow-xl select-none">
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-800/80">
+        {/* Volver al Portal Principal */}
+        {onBackToHome && (
+          <button
+            onClick={onBackToHome}
+            className="w-full mb-4 flex items-center justify-between text-xs font-semibold text-slate-400 hover:text-white transition-colors px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 group"
+          >
+            <div className="flex items-center gap-2">
+              <ArrowLeft className="w-3.5 h-3.5 text-brand-400 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Portal de Servicios</span>
+            </div>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300 font-mono">Hub</span>
+          </button>
+        )}
+
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-brand-500/20 overflow-hidden shrink-0">
             <img
@@ -42,7 +57,7 @@ export default function Sidebar({
             <h1 className="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-1.5">
               Gestor de Eventos
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                v1.1
+                v1.2
               </span>
             </h1>
             <p className="text-xs text-slate-400">Universidad Continental</p>
@@ -53,9 +68,9 @@ export default function Sidebar({
         <div className="mt-4 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-between text-xs text-slate-300">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span>Portal Público</span>
+            <span>Portal de Eventos</span>
           </div>
-          <span className="text-[10px] text-slate-400 bg-slate-700/60 px-1.5 py-0.5 rounded">Sin Login</span>
+          <span className="text-[10px] text-slate-400 bg-slate-700/60 px-1.5 py-0.5 rounded">Activo</span>
         </div>
       </div>
 

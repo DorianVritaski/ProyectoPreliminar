@@ -187,3 +187,100 @@ def seed_database(db: Session):
 
     db.commit()
     print("Datos semilla inicializados exitosamente.")
+
+
+def seed_accesos_sample(db: Session):
+    from app.models.solicitud_acceso import SolicitudAcceso
+    if db.query(SolicitudAcceso).first():
+        return
+
+    now = datetime.now()
+    hoy_inicio = datetime(now.year, now.month, now.day, 8, 30)
+    hoy_fin = datetime(now.year, now.month, now.day, 18, 0)
+
+    # 1. Caso A: Contratista con trabajos de riesgo (Apartado 3 activo) -> PENDIENTE de SSOMA
+    acc1 = SolicitudAcceso(
+        codigo_acceso="ACC-2026-R810",
+        anfitrion_correo="c.mendoza@continental.edu.pe",
+        anfitrion_nombre="Ing. Carlos Mendoza",
+        anfitrion_area="Dirección de Infraestructura y Mantenimiento",
+        sede="Campus Huancayo",
+        ubicacion_especifica="Pabellón B - Patio Técnico Subestación",
+        motivo="Mantenimiento de Grupo Electrógeno y Tableros Eléctricos",
+        fecha_inicio=hoy_inicio,
+        fecha_fin=hoy_fin,
+        detalles="Ingreso de herramientas de alto voltaje y personal técnico para mantenimiento semestral.",
+        requiere_ssoma_riesgo=True,
+        lineamientos_ssoma=None,
+        observacion_ssoma=None,
+        url_sctr_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        url_lista_personal_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        documentos_ssoma=None,
+        visitantes=[
+            {"id": 1, "nombre": "Juan Pérez Ramos", "dni": "45892134", "empresa": "ElectroSur Contratistas SAC", "ingresado": False, "hora_ingreso": None},
+            {"id": 2, "nombre": "Marcos Aliaga Huamán", "dni": "70123984", "empresa": "ElectroSur Contratistas SAC", "ingresado": False, "hora_ingreso": None}
+        ],
+        estado="PENDIENTE",
+        check_in_realizado=False,
+        fecha_check_in=None
+    )
+
+    # 2. Caso B: Ponente internacional / Visita Académica (Sin riesgo) -> AUTORIZADO automático
+    acc2 = SolicitudAcceso(
+        codigo_acceso="ACC-2026-V502",
+        anfitrion_correo="e.silva@continental.edu.pe",
+        anfitrion_nombre="Dra. Elena Silva",
+        anfitrion_area="Facultad de Ciencias de la Empresa",
+        sede="Campus Huancayo",
+        ubicacion_especifica="Auditorio UC",
+        motivo="Ponencia Magistral de Apertura - Congreso Internacional",
+        fecha_inicio=datetime(now.year, now.month, now.day, 10, 0),
+        fecha_fin=datetime(now.year, now.month, now.day, 14, 0),
+        detalles="Expositora invitada del consorcio universitario.",
+        requiere_ssoma_riesgo=False,
+        lineamientos_ssoma="Ingreso autorizado por Garita Principal Av. San Carlos. Portar credencial visible.",
+        observacion_ssoma=None,
+        url_sctr_pdf=None,
+        url_lista_personal_pdf=None,
+        documentos_ssoma=None,
+        visitantes=[
+            {"id": 1, "nombre": "Dra. Claudia Domínguez Valdés", "dni": "41239856", "empresa": "Universidad de Salamanca (España)", "ingresado": False, "hora_ingreso": None}
+        ],
+        estado="AUTORIZADO",
+        check_in_realizado=False,
+        fecha_check_in=None
+    )
+
+    # 3. Caso A ya Autorizado por SSOMA con Check-in activo
+    acc3 = SolicitudAcceso(
+        codigo_acceso="ACC-2026-P933",
+        anfitrion_correo="a.galvez@continental.edu.pe",
+        anfitrion_nombre="Lic. Andrea Gálvez",
+        anfitrion_area="Dirección de Vida Universitaria",
+        sede="Campus Huancayo",
+        ubicacion_especifica="Área verde a lado del pabellón H",
+        motivo="Instalación de Escenario y Sonido para Feria Vocacional",
+        fecha_inicio=datetime(now.year, now.month, now.day, 7, 0),
+        fecha_fin=datetime(now.year, now.month, now.day, 20, 0),
+        detalles="Montaje de estructuras metálicas y audio profesional.",
+        requiere_ssoma_riesgo=True,
+        lineamientos_ssoma="Uso obligatorio de EPP completo: casco, chaleco reflectivo y botas con punta de acero. Descarga autorizada solo por portón vehicular 3.",
+        observacion_ssoma=None,
+        url_sctr_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        url_lista_personal_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        documentos_ssoma=None,
+        visitantes=[
+            {"id": 1, "nombre": "Roberto Cárdenas Vila", "dni": "20541299", "empresa": "Eventos & Estructuras Perú", "ingresado": True, "hora_ingreso": "07:35:10"},
+            {"id": 2, "nombre": "Luis Morales Quispe", "dni": "47812903", "empresa": "Eventos & Estructuras Perú", "ingresado": False, "hora_ingreso": None}
+        ],
+        estado="AUTORIZADO",
+        check_in_realizado=True,
+        fecha_check_in=datetime(now.year, now.month, now.day, 7, 35, 10)
+    )
+
+    db.add(acc1)
+    db.add(acc2)
+    db.add(acc3)
+    db.commit()
+    print("Datos semilla de Solicitudes de Acceso inicializados con éxito.")
+

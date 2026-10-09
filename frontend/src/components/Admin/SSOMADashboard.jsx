@@ -22,11 +22,14 @@ import {
   Check,
   AlertCircle,
   Sparkles,
+  QrCode,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
+import SSOMAAccesosTab from './SSOMAAccesosTab';
 
 export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicData }) {
+  const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos'
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState(null); // { message, type: 'success' | 'error' }
@@ -261,9 +264,43 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
         </div>
       )}
 
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
+      {/* Sub-tab Navigation: Evaluación de Eventos vs Gestión de Accesos */}
+      <div className="flex border-b border-slate-200/80 gap-2 bg-white px-4 pt-3 rounded-2xl shadow-xs">
+        <button
+          onClick={() => setActiveMainTab('eventos')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+            activeMainTab === 'eventos'
+              ? 'border-emerald-600 text-emerald-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <ShieldAlert className="w-4 h-4" />
+          <span>Evaluación de Eventos (SCTR / Proveedores)</span>
+        </button>
+        <button
+          onClick={() => setActiveMainTab('accesos')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+            activeMainTab === 'accesos'
+              ? 'border-emerald-600 text-emerald-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Gestión de Accesos al Campus</span>
+        </button>
+      </div>
+
+      {/* Sub-tab: Gestión de Accesos */}
+      {activeMainTab === 'accesos' && (
+        <SSOMAAccesosTab adminUser={adminUser} showFeedback={showFeedback} />
+      )}
+
+      {/* Sub-tab: Evaluación de Eventos */}
+      {activeMainTab === 'eventos' && (
+        <>
+          {/* Metrics Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
             <FileText className="w-5 h-5" />
           </div>
@@ -811,6 +848,8 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

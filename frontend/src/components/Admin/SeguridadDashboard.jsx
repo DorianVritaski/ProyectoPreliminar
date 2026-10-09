@@ -26,12 +26,15 @@ import {
   Info,
   UserCheck,
   Eye,
-  X
+  X,
+  QrCode
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
+import SeguridadAccesosTab from './SeguridadAccesosTab';
 
 export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPublicData }) {
+  const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos'
   const [solicitudes, setSolicitudes] = useState([]);
   const [ambientes, setAmbientes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -295,10 +298,46 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
         </div>
       )}
 
-      {/* ============================================================== */}
-      {/* 2. Tarjetas de Resumen / Métricas Operativas                   */}
-      {/* ============================================================== */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
+      {/* Sub-tab Navigation: Monitoreo de Eventos vs Control de Accesos en Garita */}
+      <div className="flex border-b border-slate-200/80 gap-2 bg-white px-4 pt-3 rounded-2xl shadow-xs print:hidden">
+        <button
+          onClick={() => setActiveMainTab('eventos')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+            activeMainTab === 'eventos'
+              ? 'border-indigo-600 text-indigo-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Monitoreo de Eventos en Campus</span>
+        </button>
+        <button
+          onClick={() => setActiveMainTab('accesos')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+            activeMainTab === 'accesos'
+              ? 'border-indigo-600 text-indigo-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Control de Accesos en Garita (Pases y Nóminas)</span>
+        </button>
+      </div>
+
+      {/* Sub-tab: Control de Accesos en Garita */}
+      {activeMainTab === 'accesos' && (
+        <div className="print:hidden">
+          <SeguridadAccesosTab adminUser={adminUser} showFeedback={showFeedback} />
+        </div>
+      )}
+
+      {/* Sub-tab: Monitoreo de Eventos en Campus */}
+      {activeMainTab === 'eventos' && (
+        <>
+          {/* ============================================================== */}
+          {/* 2. Tarjetas de Resumen / Métricas Operativas                   */}
+          {/* ============================================================== */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Eventos Hoy</span>
@@ -891,6 +930,8 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -247,4 +247,37 @@ export const api = {
     fetchJSON(`/admin/usuarios/${id}`, {
       method: 'DELETE',
     }),
+
+  // -------------------------------------------------------------
+  // Módulo de Control de Accesos al Campus (SSOMA & Seguridad)
+  // -------------------------------------------------------------
+  getAccesos: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.fecha) q.append('fecha', params.fecha);
+    if (params.estado) q.append('estado', params.estado);
+    if (params.motivo) q.append('motivo', params.motivo);
+    if (params.requiere_ssoma_riesgo !== undefined && params.requiere_ssoma_riesgo !== null) {
+      q.append('requiere_ssoma_riesgo', params.requiere_ssoma_riesgo);
+    }
+    if (params.search) q.append('search', params.search);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return fetchJSON(`/accesos${qs}`);
+  },
+  createAcceso: (payload) =>
+    fetchJSON('/accesos', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getAccesoByCodigo: (codigoOId) =>
+    fetchJSON(`/accesos/${codigoOId}`),
+  adminUpdateAccesoSSOMA: (id, payload) =>
+    fetchJSON(`/admin/accesos/${id}/ssoma`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  adminCheckInAcceso: (id, payload = {}) =>
+    fetchJSON(`/admin/accesos/${id}/check-in`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };
