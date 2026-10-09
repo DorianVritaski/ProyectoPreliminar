@@ -666,6 +666,28 @@ export default function AccesosModule() {
               </p>
             </div>
 
+            {/* Código QR Inmediato */}
+            <div className="bg-white p-3 rounded-2xl border-2 border-slate-900 shadow-lg flex items-center justify-center max-w-[210px] mx-auto">
+              <QRCodeSVG
+                value={
+                  typeof window !== 'undefined'
+                    ? `${window.location.origin}/accesos?codigo=${submitSuccess.codigo_acceso}`
+                    : `ACCESO:${submitSuccess.codigo_acceso}`
+                }
+                size={180}
+                level="H"
+                includeMargin={true}
+                imageSettings={{
+                  src: "https://marketingperu.beglobal.biz/wp-content/uploads/2026/05/Universiadad-Continental-Isotipo.png",
+                  x: undefined,
+                  y: undefined,
+                  height: 32,
+                  width: 32,
+                  excavate: true,
+                }}
+              />
+            </div>
+
             {/* Código en grande */}
             <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl flex items-center justify-between gap-3 max-w-xs mx-auto">
               <span className="font-mono font-black text-lg text-amber-300 tracking-wider">
