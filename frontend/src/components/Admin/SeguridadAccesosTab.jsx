@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  QrCode,
+  Ticket,
   ShieldCheck,
   ShieldAlert,
   Users,
@@ -202,7 +202,7 @@ export default function SeguridadAccesosTab({ adminUser, showFeedback }) {
         {/* Total Programados */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
-            <QrCode className="w-5 h-5" />
+            <Ticket className="w-5 h-5" />
           </div>
           <div>
             <div className="text-xs font-medium text-slate-500">Pases Registrados</div>
@@ -304,7 +304,7 @@ export default function SeguridadAccesosTab({ adminUser, showFeedback }) {
       ) : filteredAccesos.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-slate-200/80 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-            <QrCode className="w-6 h-6" />
+            <Ticket className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-slate-800">No se encontraron registros de acceso</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -346,7 +346,7 @@ export default function SeguridadAccesosTab({ adminUser, showFeedback }) {
                           : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      <QrCode className="w-6 h-6" />
+                      <Ticket className="w-6 h-6" />
                     </div>
 
                     <div>

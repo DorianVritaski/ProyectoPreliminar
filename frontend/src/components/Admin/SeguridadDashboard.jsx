@@ -27,7 +27,7 @@ import {
   UserCheck,
   Eye,
   X,
-  QrCode
+  Ticket
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
@@ -319,8 +319,8 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <QrCode className="w-4 h-4" />
-          <span>Control de Accesos en Garita (Pases y Nóminas)</span>
+          <Ticket className="w-4 h-4" />
+          <span>Control de Accesos en Garita (Tickets y Nóminas)</span>
         </button>
       </div>
 

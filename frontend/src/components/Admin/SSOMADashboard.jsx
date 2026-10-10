@@ -22,7 +22,7 @@ import {
   Check,
   AlertCircle,
   Sparkles,
-  QrCode,
+  Ticket,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
@@ -285,7 +285,7 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <QrCode className="w-4 h-4" />
+          <Ticket className="w-4 h-4" />
           <span>Gestión de Accesos al Campus</span>
         </button>
       </div>

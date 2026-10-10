@@ -148,3 +148,72 @@ html, body {
 .fc-daygrid-more-link:hover {
   background-color: #bae0fd;
 }
+
+/* ============================================================== */
+/* ESTILOS DE IMPRESIÓN OFICIAL PARA PASE DIGITAL DE ACCESO        */
+/* ============================================================== */
+@media print {
+  @page {
+    margin: 0.8cm;
+    size: A4 portrait;
+  }
+
+  /* Resetear el documento para evitar fondos oscuros y márgenes extras */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar absolutamente todo por defecto */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Mostrar exclusivamente el contenedor del ticket y sus elementos hijos */
+  #ticket-pase-imprimible,
+  #ticket-pase-imprimible * {
+    visibility: visible !important;
+  }
+
+  /* Ubicar la tarjeta del ticket en la esquina superior izquierda a tamaño completo */
+  #ticket-pase-imprimible {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 1.5px solid #475569 !important;
+    border-radius: 16px !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: visible !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Asegurar que los estilos gráficos del pase se impriman idénticos a pantalla */
+  #ticket-pase-imprimible * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar controles interactivos que no deben salir en la impresión o PDF */
+  .no-print,
+  .print\:hidden,
+  #ticket-pase-imprimible .print\:hidden,
+  button {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+

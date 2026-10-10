@@ -7,7 +7,7 @@ import {
   Building2,
   Clock,
   Sparkles,
-  QrCode,
+  Ticket,
   Users,
   CheckCircle2,
   Layers,
@@ -192,7 +192,7 @@ export default function LandingHome() {
               {/* Badge & Icono */}
               <div className="flex items-center justify-between">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-105 transition-transform duration-300">
-                  <QrCode className="w-7 h-7 text-white" />
+                  <Ticket className="w-7 h-7 text-white" />
                 </div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
@@ -223,8 +223,8 @@ export default function LandingHome() {
                   Pólizas y Nómina Externa
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[11px] font-medium text-slate-300">
-                  <QrCode className="w-3.5 h-3.5 text-yellow-400" />
-                  Pases Temporales QR
+                  <Ticket className="w-3.5 h-3.5 text-yellow-400" />
+                  Pase Digital y Ticket
                 </span>
               </div>
             </div>

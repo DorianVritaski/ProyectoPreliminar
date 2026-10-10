@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  QrCode,
+  Ticket,
   ShieldCheck,
   ShieldAlert,
   ArrowLeft,
@@ -29,7 +29,6 @@ import {
   Loader2,
   ChevronRight
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../api/client';
 import { formatDateShort, formatTimeRange } from '../utils/formatters';
 import AccessCalendarPicker from '../components/Accesos/AccessCalendarPicker';
@@ -213,14 +212,14 @@ export default function AccesosModule() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-white relative overflow-x-hidden print:bg-white print:text-slate-900 print:min-h-0 print:overflow-visible">
       {/* Glows decorativos */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(245,158,11,0.18),rgba(255,255,255,0))] pointer-events-none" />
-      <div className="absolute top-1/4 -left-48 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -right-48 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(245,158,11,0.18),rgba(255,255,255,0))] pointer-events-none print:hidden" />
+      <div className="absolute top-1/4 -left-48 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none print:hidden" />
+      <div className="absolute top-1/3 -right-48 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none print:hidden" />
 
       {/* 1. Header con botón de retorno y branding institucional */}
-      <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0">
+      <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 print:hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <button
@@ -262,14 +261,14 @@ export default function AccesosModule() {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Consultar Pase (QR)
+              Consultar Pase Digital
             </button>
           </div>
         </div>
       </header>
 
       {/* 2. Contenido Principal */}
-      <main className="relative z-10 flex-1 max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full">
+      <main className="relative z-10 flex-1 max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full print:p-0 print:m-0 print:max-w-none">
         {/* ========================================================= */}
         {/* TAB 1: FORMULARIO DE REGISTRO DE SOLICITUD DE ACCESO      */}
         {/* ========================================================= */}
@@ -637,7 +636,7 @@ export default function AccesosModule() {
                     </>
                   ) : (
                     <>
-                      <QrCode className="w-4 h-4" />
+                      <Ticket className="w-4 h-4" />
                       <span>Generar Solicitud de Acceso al Campus</span>
                     </>
                   )}
@@ -659,48 +658,35 @@ export default function AccesosModule() {
                 ¡Solicitud Registrada Exitosamente!
               </span>
               <h2 className="text-2xl font-black text-white">
-                Pase de Acceso Generado
+                Ticket de Acceso Generado
               </h2>
               <p className="text-xs text-slate-300">
-                Guarde su código de pase para presentar en garita o realizar el seguimiento de su autorización.
+                Guarde su código de ticket o descargue su pase digital para presentar al momento del ingreso por Garita de Seguridad.
               </p>
             </div>
 
-            {/* Código QR Inmediato */}
-            <div className="bg-white p-3 rounded-2xl border-2 border-slate-900 shadow-lg flex items-center justify-center max-w-[210px] mx-auto">
-              <QRCodeSVG
-                value={
-                  typeof window !== 'undefined'
-                    ? `${window.location.origin}/accesos?codigo=${submitSuccess.codigo_acceso}`
-                    : `ACCESO:${submitSuccess.codigo_acceso}`
-                }
-                size={180}
-                level="H"
-                includeMargin={true}
-                imageSettings={{
-                  src: "https://marketingperu.beglobal.biz/wp-content/uploads/2026/05/Universiadad-Continental-Isotipo.png",
-                  x: undefined,
-                  y: undefined,
-                  height: 32,
-                  width: 32,
-                  excavate: true,
-                }}
-              />
-            </div>
-
-            {/* Código en grande */}
-            <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl flex items-center justify-between gap-3 max-w-xs mx-auto">
-              <span className="font-mono font-black text-lg text-amber-300 tracking-wider">
-                {submitSuccess.codigo_acceso}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleCopyCode(submitSuccess.codigo_acceso)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                title="Copiar código"
-              >
-                {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              </button>
+            {/* Tarjeta Visual Oficial del Ticket */}
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-dashed border-amber-500/60 p-6 rounded-2xl max-w-md mx-auto shadow-xl space-y-3">
+              <div className="flex items-center justify-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <Ticket className="w-4 h-4" />
+                <span>Código Oficial del Ticket</span>
+              </div>
+              <div className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between gap-3">
+                <span className="font-mono font-black text-xl sm:text-2xl text-amber-300 tracking-wider">
+                  {submitSuccess.codigo_acceso}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(submitSuccess.codigo_acceso)}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                  title="Copiar código del ticket"
+                >
+                  {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium">
+                Presente este código o descargue el pase digital para ingresar al campus.
+              </p>
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -713,8 +699,8 @@ export default function AccesosModule() {
                 }}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition-all flex items-center justify-center gap-2"
               >
-                <QrCode className="w-4 h-4" />
-                <span>Ver Mi Pase Digital con QR</span>
+                <Printer className="w-4 h-4" />
+                <span>Ver e Imprimir Pase Digital</span>
               </button>
 
               <button
@@ -751,12 +737,12 @@ export default function AccesosModule() {
         {activeTab === 'consultar' && (
           <div className="space-y-8 animate-in fade-in duration-200">
             {/* Buscador de Pase */}
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 sm:p-8 max-w-2xl mx-auto shadow-xl text-center space-y-4">
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 sm:p-8 max-w-2xl mx-auto shadow-xl text-center space-y-4 print:hidden">
               <h2 className="text-xl font-bold text-white">
                 Consultar Estado y Pase Digital de Acceso
               </h2>
               <p className="text-xs text-slate-300">
-                Ingrese el código de pase recibido al registrar la solicitud (ej. ACC-2026-R810).
+                Ingrese el código del ticket recibido al registrar la solicitud (ej. ACC-2026-R810).
               </p>
 
               <div className="flex items-center gap-2 max-w-md mx-auto">
@@ -789,14 +775,17 @@ export default function AccesosModule() {
               )}
             </div>
 
-            {/* Credencial Digital / Pase con QR Encontrado */}
+            {/* Credencial Digital / Pase Oficial Encontrado */}
             {paseEncontrado && (
-              <div className="max-w-2xl mx-auto bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200">
+              <div
+                id="ticket-pase-imprimible"
+                className="max-w-2xl mx-auto bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200"
+              >
                 {/* Cabecera de la Credencial */}
                 <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white p-6 sm:p-7 relative overflow-hidden">
                   <div className="flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-white p-1 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-2xl bg-white p-1 flex items-center justify-center shrink-0">
                         <img
                           src="https://marketingperu.beglobal.biz/wp-content/uploads/2026/05/Universiadad-Continental-Isotipo.png"
                           alt="Logo Continental"
@@ -851,49 +840,32 @@ export default function AccesosModule() {
                   </span>
                 </div>
 
-                {/* Cuerpo del Pase con QR */}
+                {/* Cuerpo del Pase y Ticket */}
                 <div className="p-6 sm:p-8 space-y-6">
-                  {/* Código QR Oficial Escaneable de Alta Resolución */}
-                  <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border border-slate-200/80 text-center">
-                    <div className="bg-white p-4 rounded-2xl border-2 border-slate-900 shadow-lg flex items-center justify-center">
-                      <QRCodeSVG
-                        value={
-                          typeof window !== 'undefined'
-                            ? `${window.location.origin}/accesos?codigo=${paseEncontrado.codigo_acceso}`
-                            : `ACCESO:${paseEncontrado.codigo_acceso}`
-                        }
-                        size={210}
-                        level="H"
-                        includeMargin={true}
-                        imageSettings={{
-                          src: "https://marketingperu.beglobal.biz/wp-content/uploads/2026/05/Universiadad-Continental-Isotipo.png",
-                          x: undefined,
-                          y: undefined,
-                          height: 38,
-                          width: 38,
-                          excavate: true,
-                        }}
-                      />
+                  {/* Voucher Oficial del Ticket de Acceso */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-amber-50/50 via-slate-50 to-amber-50/30 rounded-3xl border-2 border-dashed border-amber-300 text-center">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-900 border border-amber-300 text-[11px] font-bold tracking-wide uppercase">
+                      <Ticket className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Código Oficial del Ticket</span>
                     </div>
 
-                    <div className="mt-3.5 space-y-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="font-mono font-bold text-sm text-slate-900 bg-slate-200/80 px-2.5 py-0.5 rounded-lg border border-slate-300 tracking-wider">
-                          {paseEncontrado.codigo_acceso}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCode(paseEncontrado.codigo_acceso)}
-                          className="p-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors"
-                          title="Copiar código de acceso"
-                        >
-                          {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-slate-600 font-medium">
-                        Escanee con la cámara de su celular o lector de Garita para verificar vigencia
-                      </p>
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <span className="font-mono font-black text-2xl sm:text-3xl text-slate-900 bg-white px-5 py-2 rounded-2xl border-2 border-slate-800 shadow-sm tracking-widest">
+                        {paseEncontrado.codigo_acceso}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(paseEncontrado.codigo_acceso)}
+                        className="p-2.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 transition-colors shadow-sm print:hidden"
+                        title="Copiar código de acceso"
+                      >
+                        {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
                     </div>
+
+                    <p className="mt-2.5 text-xs text-slate-600 font-medium max-w-md mx-auto">
+                      Presente este código de ticket junto a su documento de identidad (DNI/CE) al oficial de Garita de Seguridad y Vigilancia al momento del ingreso.
+                    </p>
                   </div>
 
                   {/* Detalle de la Visita */}
@@ -980,8 +952,19 @@ export default function AccesosModule() {
                     </div>
                   </div>
 
+                  {/* Pie Institucional para Impresión / PDF */}
+                  <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-medium">Acreditación Oficial de Acceso • Universidad Continental</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      Válido según cronograma autorizado
+                    </div>
+                  </div>
+
                   {/* Botón de Impresión */}
-                  <div className="pt-2 flex items-center justify-end">
+                  <div className="pt-2 flex items-center justify-end print:hidden">
                     <button
                       type="button"
                       onClick={() => window.print()}

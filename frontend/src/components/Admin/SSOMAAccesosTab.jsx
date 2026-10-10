@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  QrCode,
+  Ticket,
   ShieldCheck,
   ShieldAlert,
   FileText,
@@ -117,7 +117,7 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
         lineamientos_ssoma: lineamientos || null,
         observacion_ssoma: null,
       });
-      showFeedback?.(`Acceso ${acc.codigo_acceso} AUTORIZADO exitosamente. Pase QR habilitado.`);
+      showFeedback?.(`Acceso ${acc.codigo_acceso} AUTORIZADO exitosamente. Pase de acceso habilitado.`);
       await loadAccesos();
     } catch (err) {
       showFeedback?.(err.message || 'Error al autorizar acceso.', 'error');
@@ -180,7 +180,7 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
-            <QrCode className="w-5 h-5 text-brand-600" />
+            <Ticket className="w-5 h-5 text-brand-600" />
           </div>
           <div>
             <div className="text-xs font-medium text-slate-500">Total Solicitudes Acceso</div>
@@ -381,7 +381,7 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
                         </div>
                         <p className="text-amber-900 leading-relaxed font-medium">
                           Verifique la póliza SCTR y la nómina de personal antes de autorizar.
-                          El código QR del pase permanece <strong>BLOQUEADO</strong> en garita hasta que emita la autorización.
+                          El pase de acceso permanece <strong>BLOQUEADO</strong> en garita hasta que emita la autorización.
                         </p>
                       </div>
                     </div>
