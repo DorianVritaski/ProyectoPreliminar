@@ -96,22 +96,26 @@ export default function LandingHome() {
       {/* 2. Main Hero Section */}
       <main className="relative z-10 flex-1 flex flex-col justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 w-full">
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12 sm:mb-16">
+          {/*}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/25 text-brand-300 text-xs font-semibold shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-brand-400" />
             <span>Ventanilla Única Digital de Gestión Universitaria</span>
           </div>
-
+          */}
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
             Portal Central de Servicios {' '}
+            {/*}
             <span className="bg-gradient-to-r from-brand-400 via-cyan-300 to-brand-200 bg-clip-text text-transparent">
               Institucional
             </span>
+            */}
           </h1>
-
+          {/*}
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
             Selecciona el módulo universitario al que deseas acceder para tramitar solicitudes,
             consultar disponibilidad de espacios o autorizar el ingreso al campus.
           </p>
+          */}
         </div>
 
         {/* 3. Grid de Módulos Principales (Cards de Alto Impacto) */}
@@ -142,10 +146,13 @@ export default function LandingHome() {
                   Gestión de Eventos y Reservas
                   <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-brand-400 group-hover:translate-x-1 transition-all" />
                 </h2>
+                {/*}
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
                   Consulta la disponibilidad en tiempo real de ambientes.
                   Solicita equipamiento, mobiliario y realiza el seguimiento continuo de tu trámite con código de ticket.
                 </p>
+                */}
+
               </div>
 
               {/* Características Clave (Pills) */}
@@ -206,10 +213,12 @@ export default function LandingHome() {
                   Control de Accesos
                   <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
                 </h2>
+                {/*
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
                   Módulo de autorización, registro e ingreso de personal externo, contratistas y proveedores a las
                   instalaciones del campus universitario.
                 </p>
+                */}
               </div>
 
               {/* Características Clave (Pills) */}

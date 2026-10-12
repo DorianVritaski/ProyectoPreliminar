@@ -245,21 +245,19 @@ export default function AccesosModule() {
                 setActiveTab('solicitar');
                 setSubmitSuccess(null);
               }}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'solicitar'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'solicitar'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
-              }`}
+                }`}
             >
               Solicitar Pase
             </button>
             <button
               onClick={() => setActiveTab('consultar')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                activeTab === 'consultar'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'consultar'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
-              }`}
+                }`}
             >
               Consultar Pase Digital
             </button>
@@ -276,10 +274,14 @@ export default function AccesosModule() {
           <div className="space-y-8 animate-in fade-in duration-200">
             {/* Encabezado del Formulario */}
             <div className="text-center space-y-2 max-w-2xl mx-auto">
+
+              {/*
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-semibold">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>Gestión Digital de Ingreso a Campus</span>
               </div>
+              */}
+
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Solicitud de Autorización y Pase de Acceso
               </h1>
@@ -810,13 +812,12 @@ export default function AccesosModule() {
 
                 {/* Banner de Estado */}
                 <div
-                  className={`px-6 py-3 text-xs font-bold flex items-center justify-between border-y ${
-                    paseEncontrado.estado === 'AUTORIZADO'
+                  className={`px-6 py-3 text-xs font-bold flex items-center justify-between border-y ${paseEncontrado.estado === 'AUTORIZADO'
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                       : paseEncontrado.estado === 'OBSERVADO'
-                      ? 'bg-rose-50 border-rose-200 text-rose-800'
-                      : 'bg-amber-50 border-amber-200 text-amber-800'
-                  }`}
+                        ? 'bg-rose-50 border-rose-200 text-rose-800'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}
                 >
                   <div className="flex items-center gap-2">
                     {paseEncontrado.estado === 'AUTORIZADO' ? (
@@ -830,8 +831,8 @@ export default function AccesosModule() {
                       {paseEncontrado.estado === 'AUTORIZADO'
                         ? 'PASE AUTORIZADO - HABILITADO EN GARITA'
                         : paseEncontrado.estado === 'OBSERVADO'
-                        ? 'PASE OBSERVADO POR SSOMA (ACCESO DENEGADO)'
-                        : 'EN REVISIÓN POR SSOMA (PASE EN ESPERA)'}
+                          ? 'PASE OBSERVADO POR SSOMA (ACCESO DENEGADO)'
+                          : 'EN REVISIÓN POR SSOMA (PASE EN ESPERA)'}
                     </span>
                   </div>
 
