@@ -801,57 +801,56 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
 
                           return (
                             <div className="space-y-2">
-                              {proveedores.map((prov, pIdx) => (
-                                <div
-                                  key={pIdx}
-                                  className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                                >
-                                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
-                                    <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0">
-                                      {pIdx + 1}
-                                    </span>
-                                    <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
-                                  </div>
+                              {proveedores.map((prov, pIdx) => {
+                                const docs = Array.isArray(prov.documentos) && prov.documentos.length > 0
+                                  ? prov.documentos
+                                  : [
+                                      prov.url_personal_externo_pdf && { url: prov.url_personal_externo_pdf, nombre: 'Personal Externo (PDF)' },
+                                      prov.url_sctr_pdf && { url: prov.url_sctr_pdf, nombre: 'Póliza SCTR (PDF)' },
+                                    ].filter(Boolean);
 
-                                  <div className="flex flex-wrap gap-2">
-                                    {prov.url_personal_externo_pdf ? (
-                                      <a
-                                        href={prov.url_personal_externo_pdf}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
-                                        title="Abrir lista de nombres y DNI para verificar en puerta"
-                                      >
-                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Personal Externo (PDF)</span>
-                                        <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
-                                      </a>
-                                    ) : (
-                                      <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
-                                        ⚠️ Nómina no adjunta
+                                return (
+                                  <div
+                                    key={pIdx}
+                                    className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                                  >
+                                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                                      <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0">
+                                        {pIdx + 1}
                                       </span>
-                                    )}
+                                      <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                                    </div>
 
-                                    {prov.url_sctr_pdf ? (
-                                      <a
-                                        href={prov.url_sctr_pdf}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
-                                        title="Verificar póliza de seguro de trabajo de riesgo"
-                                      >
-                                        <FileText className="w-3.5 h-3.5 text-amber-700" />
-                                        <span>Póliza SCTR (PDF)</span>
-                                        <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
-                                      </a>
-                                    ) : (
-                                      <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
-                                        ⚠️ SCTR no adjunto
-                                      </span>
-                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                      {docs.length > 0 ? (
+                                        docs.map((doc, dIdx) => {
+                                          const url = typeof doc === 'string' ? doc : (doc?.url || '');
+                                          if (!url) return null;
+                                          const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${dIdx + 1}`;
+                                          return (
+                                            <a
+                                              key={dIdx}
+                                              href={api.getFileUrl(url)}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
+                                              title={`Verificar ${label} en puerta`}
+                                            >
+                                              <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                              <span>{label}</span>
+                                              <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
+                                            </a>
+                                          );
+                                        })
+                                      ) : (
+                                        <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
+                                          ⚠️ Sin documentos adjuntos
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           );
                         })()}

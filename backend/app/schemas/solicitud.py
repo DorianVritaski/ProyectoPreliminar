@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 import re
 from pydantic import BaseModel, Field, field_validator
 
@@ -26,6 +27,7 @@ class ProveedorSSOMAItem(BaseModel):
     nombre: str | None = None
     url_sctr_pdf: str | None = None
     url_personal_externo_pdf: str | None = None
+    documentos: list[Any] | None = None
 
 class RecursoItemRequest(BaseModel):
     recurso_id: int

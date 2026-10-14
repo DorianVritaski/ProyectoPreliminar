@@ -386,43 +386,63 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
                       </div>
                     </div>
 
-                    {/* Documentos SCTR y Personal */}
+                    {/* Documentos Pertinentes Adjuntos */}
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                       <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                         <FileText className="w-4 h-4 text-brand-600" />
-                        Documentación de Seguridad Adjunta (SCTR y Personal):
+                        Documentación y Enlaces Pertinentes Adjuntos:
                       </span>
 
-                      <div className="flex flex-wrap items-center gap-3">
-                        {acc.url_sctr_pdf ? (
-                          <button
-                            type="button"
-                            onClick={() => window.open(api.getFileUrl(acc.url_sctr_pdf), '_blank')}
-                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-900 border border-brand-200 text-xs font-bold transition-all shadow-xs"
-                          >
-                            <FileText className="w-4 h-4 text-brand-600" />
-                            <span>Póliza SCTR (PDF)</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-brand-600" />
-                          </button>
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {Array.isArray(acc.documentos_ssoma) && acc.documentos_ssoma.length > 0 ? (
+                          acc.documentos_ssoma.map((doc, idx) => {
+                            const url = typeof doc === 'string' ? doc : (doc?.url || '');
+                            if (!url) return null;
+                            const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${idx + 1}`;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => window.open(api.getFileUrl(url), '_blank')}
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-900 border border-brand-200 text-xs font-bold transition-all shadow-xs"
+                              >
+                                <FileText className="w-4 h-4 text-brand-600" />
+                                <span>{label}</span>
+                                <ExternalLink className="w-3.5 h-3.5 text-brand-500" />
+                              </button>
+                            );
+                          })
                         ) : (
-                          <span className="text-xs text-rose-700 italic flex items-center gap-1">
-                            <AlertCircle className="w-4 h-4" /> Sin póliza SCTR adjunta
-                          </span>
+                          <>
+                            {acc.url_sctr_pdf && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(api.getFileUrl(acc.url_sctr_pdf), '_blank')}
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-900 border border-brand-200 text-xs font-bold transition-all shadow-xs"
+                              >
+                                <FileText className="w-4 h-4 text-brand-600" />
+                                <span>Documento 1 (SCTR)</span>
+                                <ExternalLink className="w-3.5 h-3.5 text-brand-600" />
+                              </button>
+                            )}
+
+                            {acc.url_lista_personal_pdf && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(api.getFileUrl(acc.url_lista_personal_pdf), '_blank')}
+                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs"
+                              >
+                                <FileText className="w-4 h-4 text-emerald-600" />
+                                <span>Documento 2 (Nómina)</span>
+                                <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
+                              </button>
+                            )}
+                          </>
                         )}
 
-                        {acc.url_lista_personal_pdf ? (
-                          <button
-                            type="button"
-                            onClick={() => window.open(api.getFileUrl(acc.url_lista_personal_pdf), '_blank')}
-                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs"
-                          >
-                            <FileText className="w-4 h-4 text-emerald-600" />
-                            <span>Nómina de Personal (PDF)</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-500 italic">
-                            Sin PDF adicional de nómina (revisar lista abajo)
+                        {(!acc.documentos_ssoma || acc.documentos_ssoma.length === 0) && !acc.url_sctr_pdf && !acc.url_lista_personal_pdf && (
+                          <span className="text-xs text-rose-700 italic flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" /> Sin documentos pertinentes adjuntos
                           </span>
                         )}
                       </div>

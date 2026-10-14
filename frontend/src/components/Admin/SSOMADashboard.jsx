@@ -577,59 +577,57 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
 
                     return (
                       <div className="space-y-2.5">
-                        {proveedores.map((prov, pIdx) => (
-                          <div
-                            key={pIdx}
-                            className="p-3 bg-white/90 rounded-xl border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
-                                {pIdx + 1}
-                              </span>
-                              <span className="text-xs font-bold text-slate-800">
-                                {prov.nombre || `Proveedor #${pIdx + 1}`}
-                              </span>
-                            </div>
+                        {proveedores.map((prov, pIdx) => {
+                          const docs = Array.isArray(prov.documentos) && prov.documentos.length > 0
+                            ? prov.documentos
+                            : [
+                                prov.url_sctr_pdf && { url: prov.url_sctr_pdf, nombre: 'SCTR (PDF)' },
+                                prov.url_personal_externo_pdf && { url: prov.url_personal_externo_pdf, nombre: 'Personal Externo (PDF)' },
+                              ].filter(Boolean);
 
-                            <div className="flex flex-wrap items-center gap-2">
-                              {/* Botón SCTR */}
-                              {prov.url_sctr_pdf ? (
-                                <button
-                                  type="button"
-                                  onClick={() => window.open(api.getFileUrl(prov.url_sctr_pdf), '_blank')}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs group"
-                                  title="Ver SCTR de este proveedor"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                  <span>SCTR (PDF)</span>
-                                  <ExternalLink className="w-3 h-3 text-emerald-600" />
-                                </button>
-                              ) : (
-                                <span className="text-[11px] text-rose-700 italic flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3" /> SCTR no adjunto
+                          return (
+                            <div
+                              key={pIdx}
+                              className="p-3 bg-white/90 rounded-xl border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                  {pIdx + 1}
                                 </span>
-                              )}
+                                <span className="text-xs font-bold text-slate-800">
+                                  {prov.nombre || `Proveedor #${pIdx + 1}`}
+                                </span>
+                              </div>
 
-                              {/* Botón Lista Personal Externo */}
-                              {prov.url_personal_externo_pdf ? (
-                                <button
-                                  type="button"
-                                  onClick={() => window.open(api.getFileUrl(prov.url_personal_externo_pdf), '_blank')}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs group"
-                                  title="Ver lista de personal de este proveedor"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                  <span>Personal Externo (PDF)</span>
-                                  <ExternalLink className="w-3 h-3 text-emerald-600" />
-                                </button>
-                              ) : (
-                                <span className="text-[11px] text-rose-700 italic flex items-center gap-1">
-                                  <AlertCircle className="w-3 h-3" /> Lista no adjunta
-                                </span>
-                              )}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {docs.length > 0 ? (
+                                  docs.map((doc, dIdx) => {
+                                    const url = typeof doc === 'string' ? doc : (doc?.url || '');
+                                    if (!url) return null;
+                                    const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${dIdx + 1}`;
+                                    return (
+                                      <button
+                                        key={dIdx}
+                                        type="button"
+                                        onClick={() => window.open(api.getFileUrl(url), '_blank')}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs group"
+                                        title={`Ver ${label} de este proveedor`}
+                                      >
+                                        <FileText className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                        <span>{label}</span>
+                                        <ExternalLink className="w-3 h-3 text-emerald-600" />
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="text-[11px] text-rose-700 italic flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" /> Sin documentos adjuntos
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
 
                         {/* Croquis si existe */}
                         {sol.croquis_url && (

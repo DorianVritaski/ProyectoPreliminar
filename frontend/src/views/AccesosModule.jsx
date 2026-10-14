@@ -54,9 +54,11 @@ export default function AccesosModule() {
     fecha_fin: '',
     detalles: '',
     requiere_ssoma_riesgo: false,
-    url_sctr_pdf: '',
-    url_lista_personal_pdf: '',
   });
+
+  const [documentosPertinentes, setDocumentosPertinentes] = useState([
+    { id: 1, url: '' }
+  ]);
 
   const [visitantes, setVisitantes] = useState([
     { id: 1, nombre: '', dni: '', empresa: '' }
@@ -105,6 +107,27 @@ export default function AccesosModule() {
     });
   };
 
+  // Manejo de la lista dinámica de documentos pertinentes (Apartado 3)
+  const handleAddDocumento = () => {
+    setDocumentosPertinentes((prev) => [
+      ...prev,
+      { id: Date.now(), url: '' }
+    ]);
+  };
+
+  const handleRemoveDocumento = (index) => {
+    if (documentosPertinentes.length <= 1) return;
+    setDocumentosPertinentes((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleDocumentoChange = (index, value) => {
+    setDocumentosPertinentes((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], url: value };
+      return updated;
+    });
+  };
+
   // Enviar formulario de solicitud
   const handleSubmitSolicitud = async (e) => {
     e.preventDefault();
@@ -129,8 +152,13 @@ export default function AccesosModule() {
         throw new Error('Debe registrar al menos un visitante con nombre completo y DNI.');
       }
 
-      if (formData.requiere_ssoma_riesgo && !formData.url_sctr_pdf.trim()) {
-        throw new Error('Para trabajos de riesgo o proveedores con SCTR, debe adjuntar el enlace a la póliza SCTR en PDF.');
+      // Validar documentos pertinentes si requiere protocolo SSOMA
+      const docsValidos = documentosPertinentes
+        .map((d) => d.url.trim())
+        .filter((u) => u.length > 0);
+
+      if (formData.requiere_ssoma_riesgo && docsValidos.length === 0) {
+        throw new Error('Para solicitudes con Protocolo SSOMA, debe ingresar al menos un enlace en "Subir documentos pertinentes".');
       }
 
       const payload = {
@@ -144,8 +172,13 @@ export default function AccesosModule() {
         fecha_fin: new Date(formData.fecha_fin).toISOString(),
         detalles: formData.detalles.trim() || null,
         requiere_ssoma_riesgo: formData.requiere_ssoma_riesgo,
-        url_sctr_pdf: formData.url_sctr_pdf.trim() || null,
-        url_lista_personal_pdf: formData.url_lista_personal_pdf.trim() || null,
+        url_sctr_pdf: docsValidos[0] || null,
+        url_lista_personal_pdf: docsValidos[1] || null,
+        documentos_ssoma: docsValidos.map((url, idx) => ({
+          id: idx + 1,
+          url: url,
+          nombre: `Documento ${idx + 1}`
+        })),
         visitantes: visitantesValidos.map((v, idx) => ({
           id: idx + 1,
           nombre: v.nombre.trim(),
@@ -464,7 +497,7 @@ export default function AccesosModule() {
                         Apartado 3: Protocolo SSOMA y Trabajos de Alto Riesgo
                       </h2>
                       <span className="text-[11px] text-slate-400">
-                        Determinación de Póliza SCTR y verificación de seguridad
+                        Carga de documentación de seguridad y prevención de riesgos
                       </span>
                     </div>
                   </div>
@@ -480,7 +513,7 @@ export default function AccesosModule() {
                     />
                     <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                     <span className="ml-3 text-xs font-bold text-slate-200">
-                      {formData.requiere_ssoma_riesgo ? 'Activo (Con Riesgo / SCTR)' : 'Inactivo (Visita Estándar)'}
+                      {formData.requiere_ssoma_riesgo ? 'Activo (Con Riesgo / SSOMA)' : 'Inactivo (Visita Estándar)'}
                     </span>
                   </label>
                 </div>
@@ -492,42 +525,69 @@ export default function AccesosModule() {
                       <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                       <div>
                         <strong className="font-bold text-amber-300 block mb-0.5">
-                          Flujo Caso A: Evaluación Obligatoria de SSOMA Activada
+                          Evaluación Obligatoria de SSOMA Activada
                         </strong>
-                        Esta solicitud requerirá revisión obligatoria de las pólizas de seguridad por parte del
+                        Esta solicitud requerirá revisión obligatoria de la documentación de seguridad por parte del
                         equipo de <strong>SSOMA</strong>. El pase digital en garita permanecerá bloqueado hasta que
                         el supervisor de SSOMA emita la autorización y dicte los lineamientos de resguardo.
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                          Enlace a Póliza SCTR en PDF (Google Drive / OneDrive): <span className="text-amber-400">*</span>
-                        </label>
-                        <input
-                          type="url"
-                          name="url_sctr_pdf"
-                          required={formData.requiere_ssoma_riesgo}
-                          value={formData.url_sctr_pdf}
-                          onChange={handleInputChange}
-                          placeholder="https://drive.google.com/file/d/..."
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 transition-colors font-mono"
-                        />
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <label className="block text-xs font-bold text-white uppercase tracking-wider">
+                            Subir documentos pertinentes <span className="text-amber-400">*</span>
+                          </label>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Pegue el enlace (Google Drive, OneDrive, etc.) a los documentos requeridos (SCTR, ATS, nómina, etc.).
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleAddDocumento}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Añadir más campos</span>
+                        </button>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                          Enlace a Nómina Oficial de Personal en PDF (Opcional):
-                        </label>
-                        <input
-                          type="url"
-                          name="url_lista_personal_pdf"
-                          value={formData.url_lista_personal_pdf}
-                          onChange={handleInputChange}
-                          placeholder="https://drive.google.com/file/d/..."
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 transition-colors font-mono"
-                        />
+                      {/* Lista dinámica de campos de enlaces */}
+                      <div className="space-y-2.5">
+                        {documentosPertinentes.map((doc, idx) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-700/80 focus-within:border-amber-500 transition-colors"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                              {idx + 1}
+                            </div>
+
+                            <div className="flex-1 relative">
+                              <input
+                                type="url"
+                                required={formData.requiere_ssoma_riesgo && idx === 0}
+                                value={doc.url}
+                                onChange={(e) => handleDocumentoChange(idx, e.target.value)}
+                                placeholder={`Enlace al documento ${idx + 1} (ej. https://drive.google.com/file/d/...)`}
+                                className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+                              />
+                            </div>
+
+                            {documentosPertinentes.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDocumento(idx)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors shrink-0"
+                                title="Eliminar este campo"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -720,9 +780,8 @@ export default function AccesosModule() {
                     fecha_fin: '',
                     detalles: '',
                     requiere_ssoma_riesgo: false,
-                    url_sctr_pdf: '',
-                    url_lista_personal_pdf: '',
                   });
+                  setDocumentosPertinentes([{ id: 1, url: '' }]);
                   setVisitantes([{ id: 1, nombre: '', dni: '', empresa: '' }]);
                 }}
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition-colors"

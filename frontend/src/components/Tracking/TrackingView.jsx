@@ -469,43 +469,52 @@ export default function TrackingView({ initialSearchQuery = '' }) {
 
                       return (
                         <div className="space-y-1.5">
-                          {proveedores.map((prov, pIdx) => (
-                            <div
-                              key={pIdx}
-                              className="p-2.5 bg-white/90 rounded-xl border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                            >
-                              <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                                <span className="w-4 h-4 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">
-                                  {pIdx + 1}
-                                </span>
-                                <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                          {proveedores.map((prov, pIdx) => {
+                            const docs = Array.isArray(prov.documentos) && prov.documentos.length > 0
+                              ? prov.documentos
+                              : [
+                                  prov.url_sctr_pdf && { url: prov.url_sctr_pdf, nombre: 'SCTR (PDF)' },
+                                  prov.url_personal_externo_pdf && { url: prov.url_personal_externo_pdf, nombre: 'Personal Externo (PDF)' },
+                                ].filter(Boolean);
+
+                            return (
+                              <div
+                                key={pIdx}
+                                className="p-2.5 bg-white/90 rounded-xl border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                              >
+                                <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                                  <span className="w-4 h-4 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">
+                                    {pIdx + 1}
+                                  </span>
+                                  <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {docs.length > 0 ? (
+                                    docs.map((doc, dIdx) => {
+                                      const url = typeof doc === 'string' ? doc : (doc?.url || '');
+                                      if (!url) return null;
+                                      const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${dIdx + 1}`;
+                                      return (
+                                        <button
+                                          key={dIdx}
+                                          type="button"
+                                          onClick={() => window.open(api.getFileUrl(url), '_blank')}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-2xs"
+                                          title={`Ver ${label}`}
+                                        >
+                                          <FileText className="w-3.5 h-3.5" />
+                                          <span>{label}</span>
+                                          <ExternalLink className="w-3 h-3" />
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-[11px] text-rose-600 italic">Sin documentos adjuntos</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                {prov.url_sctr_pdf && (
-                                  <button
-                                    type="button"
-                                    onClick={() => window.open(api.getFileUrl(prov.url_sctr_pdf), '_blank')}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-2xs"
-                                  >
-                                    <FileText className="w-3.5 h-3.5" />
-                                    <span>Ver SCTR (PDF)</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                  </button>
-                                )}
-                                {prov.url_personal_externo_pdf && (
-                                  <button
-                                    type="button"
-                                    onClick={() => window.open(api.getFileUrl(prov.url_personal_externo_pdf), '_blank')}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-2xs"
-                                  >
-                                    <FileText className="w-3.5 h-3.5" />
-                                    <span>Ver Personal Externo (PDF)</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       );
                     })()}

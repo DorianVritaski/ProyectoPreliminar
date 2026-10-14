@@ -78,31 +78,40 @@ export default function ModificarSolicitudModal({
   );
   const [proveedoresSsoma, setProveedoresSsoma] = useState(() => {
     if (solicitud.documentos_ssoma && solicitud.documentos_ssoma.length > 0) {
-      return solicitud.documentos_ssoma.map((d, idx) => ({
-        id: idx + 1,
-        nombre_proveedor: d.nombre || `Proveedor Externo #${idx + 1}`,
-        url_sctr_pdf: d.url_sctr_pdf || '',
-        file_sctr_name: d.url_sctr_pdf ? d.url_sctr_pdf.split('/').pop() : '',
-        url_personal_externo_pdf: d.url_personal_externo_pdf || '',
-        file_personal_name: d.url_personal_externo_pdf
-          ? d.url_personal_externo_pdf.split('/').pop()
-          : '',
-        uploading_sctr: false,
-        uploading_personal: false,
-      }));
+      return solicitud.documentos_ssoma.map((d, idx) => {
+        let docs = [];
+        if (Array.isArray(d.documentos) && d.documentos.length > 0) {
+          docs = d.documentos.map((item, dIdx) => ({
+            id: dIdx + 1,
+            url: typeof item === 'string' ? item : (item?.url || ''),
+          }));
+        } else {
+          if (d.url_sctr_pdf) docs.push({ id: 1, url: d.url_sctr_pdf });
+          if (d.url_personal_externo_pdf) docs.push({ id: docs.length + 1, url: d.url_personal_externo_pdf });
+        }
+        if (docs.length === 0) docs = [{ id: 1, url: '' }];
+
+        return {
+          id: idx + 1,
+          nombre_proveedor: d.nombre || `Proveedor Externo #${idx + 1}`,
+          documentos: docs,
+          url_sctr_pdf: d.url_sctr_pdf || '',
+          url_personal_externo_pdf: d.url_personal_externo_pdf || '',
+        };
+      });
     }
+    const fallbackDocs = [];
+    if (solicitud.url_sctr_pdf) fallbackDocs.push({ id: 1, url: solicitud.url_sctr_pdf });
+    if (solicitud.url_personal_externo_pdf) fallbackDocs.push({ id: fallbackDocs.length + 1, url: solicitud.url_personal_externo_pdf });
+    if (fallbackDocs.length === 0) fallbackDocs.push({ id: 1, url: '' });
+
     return [
       {
         id: 1,
         nombre_proveedor: 'Proveedor Externo #1',
+        documentos: fallbackDocs,
         url_sctr_pdf: solicitud.url_sctr_pdf || '',
-        file_sctr_name: solicitud.url_sctr_pdf ? 'SCTR_Registrado.pdf' : '',
         url_personal_externo_pdf: solicitud.url_personal_externo_pdf || '',
-        file_personal_name: solicitud.url_personal_externo_pdf
-          ? 'Personal_Externo.pdf'
-          : '',
-        uploading_sctr: false,
-        uploading_personal: false,
       },
     ];
   });
@@ -280,14 +289,11 @@ export default function ModificarSolicitudModal({
     setProveedoresSsoma((prev) => [
       ...prev,
       {
-        id: prev.length + 1,
+        id: Date.now(),
         nombre_proveedor: `Proveedor Externo #${prev.length + 1}`,
+        documentos: [{ id: 1, url: '' }],
         url_sctr_pdf: '',
-        file_sctr_name: '',
         url_personal_externo_pdf: '',
-        file_personal_name: '',
-        uploading_sctr: false,
-        uploading_personal: false,
       },
     ]);
   };
@@ -303,61 +309,42 @@ export default function ModificarSolicitudModal({
     );
   };
 
-  const handleUploadProveedorPdf = async (e, provId, type) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setErrorMessage('El documento debe estar en formato PDF (.pdf).');
-      return;
-    }
-
-    if (file.size > 15 * 1024 * 1024) {
-      setErrorMessage('El archivo excede el tamaño máximo permitido de 15MB.');
-      return;
-    }
-
-    setErrorMessage('');
+  const handleAddDocumentoProveedor = (provId) => {
     setProveedoresSsoma((prev) =>
-      prev.map((p) =>
-        p.id === provId
-          ? { ...p, [type === 'sctr' ? 'uploading_sctr' : 'uploading_personal']: true }
-          : p
-      )
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const docs = p.documentos || [];
+        return {
+          ...p,
+          documentos: [...docs, { id: Date.now(), url: '' }],
+        };
+      })
     );
+  };
 
-    try {
-      const res = await api.uploadArchivo(file);
-      setProveedoresSsoma((prev) =>
-        prev.map((p) => {
-          if (p.id !== provId) return p;
-          if (type === 'sctr') {
-            return {
-              ...p,
-              url_sctr_pdf: res.url,
-              file_sctr_name: file.name,
-              uploading_sctr: false,
-            };
-          } else {
-            return {
-              ...p,
-              url_personal_externo_pdf: res.url,
-              file_personal_name: file.name,
-              uploading_personal: false,
-            };
-          }
-        })
-      );
-    } catch (err) {
-      setErrorMessage(err.message || 'Error al subir documento PDF.');
-      setProveedoresSsoma((prev) =>
-        prev.map((p) =>
-          p.id === provId
-            ? { ...p, [type === 'sctr' ? 'uploading_sctr' : 'uploading_personal']: false }
-            : p
-        )
-      );
-    }
+  const handleRemoveDocumentoProveedor = (provId, docIdx) => {
+    setProveedoresSsoma((prev) =>
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const docs = p.documentos || [];
+        if (docs.length <= 1) return p;
+        return {
+          ...p,
+          documentos: docs.filter((_, idx) => idx !== docIdx),
+        };
+      })
+    );
+  };
+
+  const handleDocumentoChangeProveedor = (provId, docIdx, url) => {
+    setProveedoresSsoma((prev) =>
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const docs = [...(p.documentos || [])];
+        docs[docIdx] = { ...docs[docIdx], url };
+        return { ...p, documentos: docs };
+      })
+    );
   };
 
   // Enviar Modificación
@@ -409,11 +396,22 @@ export default function ModificarSolicitudModal({
     // Construir lista de documentos SSOMA
     let documentosSsomaPayload = null;
     if (requiereSsoma) {
-      documentosSsomaPayload = proveedoresSsoma.map((p) => ({
-        nombre: p.nombre_proveedor || 'Proveedor Externo',
-        url_sctr_pdf: p.url_sctr_pdf || null,
-        url_personal_externo_pdf: p.url_personal_externo_pdf || null,
-      }));
+      documentosSsomaPayload = proveedoresSsoma.map((p, idx) => {
+        const docsValidos = (p.documentos || [])
+          .map((d) => (typeof d === 'string' ? d.trim() : (d?.url || '').trim()))
+          .filter(Boolean);
+
+        return {
+          nombre: p.nombre_proveedor?.trim() || `Proveedor #${idx + 1}`,
+          url_sctr_pdf: docsValidos[0] || p.url_sctr_pdf || null,
+          url_personal_externo_pdf: docsValidos[1] || p.url_personal_externo_pdf || null,
+          documentos: docsValidos.map((url, dIdx) => ({
+            id: dIdx + 1,
+            url: url,
+            nombre: `Documento ${dIdx + 1}`,
+          })),
+        };
+      });
     }
 
     const payload = {
@@ -788,119 +786,127 @@ export default function ModificarSolicitudModal({
             {requiereSsoma && (
               <div className="space-y-4 pt-2">
                 <p className="text-xs text-emerald-800 leading-relaxed">
-                  Para el ingreso de contratistas o personal externo al campus, es indispensable adjuntar el SCTR vigente y la nómina completa en PDF.
+                  Para el ingreso de contratistas o personal externo al campus, adjunte los enlaces correspondientes a los documentos pertinentes requeridos por SSOMA (SCTR, ATS, nómina, etc.).
                 </p>
 
-                <div className="space-y-3">
-                  {proveedoresSsoma.map((prov, idx) => (
-                    <div
-                      key={prov.id}
-                      className="p-4 bg-white rounded-xl border border-emerald-200 space-y-3 shadow-2xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
-                            {idx + 1}
-                          </span>
-                          <input
-                            type="text"
-                            value={prov.nombre_proveedor}
-                            onChange={(e) => handleUpdateProveedorName(prov.id, e.target.value)}
-                            placeholder="Nombre de la empresa contratista o proveedor"
-                            className="text-xs font-bold text-slate-800 border-b border-emerald-300 focus:border-emerald-600 px-1 py-0.5 bg-transparent flex-1"
-                          />
-                        </div>
-                        {proveedoresSsoma.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveProveedor(prov.id)}
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                <div className="space-y-4">
+                  {proveedoresSsoma.map((prov, idx) => {
+                    const docs = prov.documentos && prov.documentos.length > 0
+                      ? prov.documentos
+                      : [{ id: 1, url: '' }];
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        {/* SCTR */}
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                          <span className="font-bold text-slate-700 block">Póliza SCTR (PDF)</span>
-                          {prov.url_sctr_pdf ? (
-                            <div className="flex items-center justify-between gap-1 p-1.5 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg">
-                              <span className="truncate flex-1 font-semibold">
-                                📄 {prov.file_sctr_name || 'SCTR.pdf'}
-                              </span>
-                              <a
-                                href={api.getFileUrl(prov.url_sctr_pdf)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-1 text-emerald-700 hover:text-emerald-900"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            </div>
-                          ) : null}
-                          <label className="flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-slate-600 transition-colors">
-                            {prov.uploading_sctr ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                            ) : (
-                              <UploadCloud className="w-3.5 h-3.5 text-emerald-600" />
-                            )}
-                            <span>{prov.url_sctr_pdf ? 'Reemplazar SCTR' : 'Subir SCTR (PDF)'}</span>
+                    return (
+                      <div
+                        key={prov.id}
+                        className="p-4 bg-white rounded-2xl border-2 border-emerald-200/90 space-y-3.5 shadow-sm"
+                      >
+                        {/* Cabecera del Proveedor */}
+                        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-emerald-100">
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center shrink-0">
+                              #{idx + 1}
+                            </span>
                             <input
-                              type="file"
-                              accept=".pdf"
-                              disabled={prov.uploading_sctr}
-                              onChange={(e) => handleUploadProveedorPdf(e, prov.id, 'sctr')}
-                              className="hidden"
+                              type="text"
+                              value={prov.nombre_proveedor}
+                              onChange={(e) => handleUpdateProveedorName(prov.id, e.target.value)}
+                              placeholder={`Nombre del Proveedor #${idx + 1} (ej. Catering, Sonido, etc.)`}
+                              className="text-xs font-bold text-slate-800 bg-emerald-50/50 hover:bg-emerald-50 focus:bg-white border border-emerald-200 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 focus:outline-none flex-1 max-w-md transition-colors"
                             />
-                          </label>
+                          </div>
+                          {proveedoresSsoma.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProveedor(prov.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors font-semibold shrink-0"
+                              title="Quitar este proveedor"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Quitar Proveedor</span>
+                            </button>
+                          )}
                         </div>
 
-                        {/* Personal Externo */}
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                          <span className="font-bold text-slate-700 block">Nómina de Personal (PDF)</span>
-                          {prov.url_personal_externo_pdf ? (
-                            <div className="flex items-center justify-between gap-1 p-1.5 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg">
-                              <span className="truncate flex-1 font-semibold">
-                                📄 {prov.file_personal_name || 'Personal.pdf'}
-                              </span>
-                              <a
-                                href={api.getFileUrl(prov.url_personal_externo_pdf)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-1 text-emerald-700 hover:text-emerald-900"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
+                        {/* Subir documentos pertinentes */}
+                        <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-200/80 space-y-3">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                              <label className="block text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                                Subir documentos pertinentes <span className="text-emerald-700">*</span>
+                              </label>
+                              <p className="text-[11px] text-slate-600 mt-0.5">
+                                Ingrese el enlace (Google Drive, OneDrive, etc.) a los documentos requeridos.
+                              </p>
                             </div>
-                          ) : null}
-                          <label className="flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-slate-600 transition-colors">
-                            {prov.uploading_personal ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                            ) : (
-                              <UploadCloud className="w-3.5 h-3.5 text-emerald-600" />
-                            )}
-                            <span>{prov.url_personal_externo_pdf ? 'Reemplazar Nómina' : 'Subir Nómina (PDF)'}</span>
-                            <input
-                              type="file"
-                              accept=".pdf"
-                              disabled={prov.uploading_personal}
-                              onChange={(e) => handleUploadProveedorPdf(e, prov.id, 'personal')}
-                              className="hidden"
-                            />
-                          </label>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAddDocumentoProveedor(prov.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200/80 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Añadir más campos</span>
+                            </button>
+                          </div>
+
+                          {/* Lista dinámica de campos de enlace */}
+                          <div className="space-y-2">
+                            {docs.map((doc, docIdx) => (
+                              <div
+                                key={doc.id || docIdx}
+                                className="flex items-center gap-2 bg-white p-2 rounded-xl border border-emerald-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
+                              >
+                                <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                                  {docIdx + 1}
+                                </div>
+
+                                <div className="flex-1 relative">
+                                  <input
+                                    type="url"
+                                    required={docIdx === 0}
+                                    value={doc.url}
+                                    onChange={(e) => handleDocumentoChangeProveedor(prov.id, docIdx, e.target.value)}
+                                    placeholder={`Enlace al documento ${docIdx + 1} (ej. https://drive.google.com/...)`}
+                                    className="w-full bg-transparent px-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
+                                  />
+                                </div>
+
+                                {doc.url && (
+                                  <a
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Probar enlace"
+                                    className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded transition-colors shrink-0"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+
+                                {docs.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveDocumentoProveedor(prov.id, docIdx)}
+                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors shrink-0"
+                                    title="Eliminar este campo"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   <button
                     type="button"
                     onClick={handleAddProveedor}
-                    className="w-full py-2.5 bg-emerald-100 hover:bg-emerald-200/80 text-emerald-900 rounded-xl border border-dashed border-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full py-3 px-4 bg-emerald-100/70 hover:bg-emerald-200 text-emerald-900 border-2 border-dashed border-emerald-400 hover:border-emerald-600 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs group"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 text-emerald-700 group-hover:scale-125 transition-transform" />
                     <span>+ Añadir otro proveedor externo</span>
                   </button>
                 </div>

@@ -30,12 +30,9 @@ import { api } from '../../api/client';
 const createInitialProveedor = (index = 1) => ({
   id: `prov_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
   nombre_proveedor: index === 1 ? 'Proveedor Principal' : `Proveedor #${index}`,
+  documentos: [{ id: 1, url: '' }],
   url_sctr_pdf: '',
-  file_sctr_name: '',
-  uploading_sctr: false,
   url_personal_externo_pdf: '',
-  file_personal_name: '',
-  uploading_personal: false,
 });
 
 export default function ReservationModal({
@@ -206,95 +203,51 @@ export default function ReservationModal({
     }));
   };
 
-  const handleUploadProveedorPdf = async (e, provId, type) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setErrorMessage('El documento adjunto debe estar en formato PDF (.pdf).');
-      return;
-    }
-
-    if (file.size > 15 * 1024 * 1024) {
-      setErrorMessage('El archivo excede el tamaño máximo permitido de 15MB.');
-      return;
-    }
-
-    setErrorMessage('');
-
+  // Manejo dinámico de documentos pertinentes por proveedor
+  const handleAddDocumentoProveedor = (provId) => {
     setFormData((prev) => ({
       ...prev,
-      proveedores_ssoma: (prev.proveedores_ssoma || []).map((p) =>
-        p.id === provId
-          ? {
-              ...p,
-              [type === 'sctr' ? 'uploading_sctr' : 'uploading_personal']: true,
-            }
-          : p
-      ),
-    }));
-
-    try {
-      const res = await api.uploadArchivo(file);
-      setFormData((prev) => {
-        const updated = (prev.proveedores_ssoma || []).map((p) => {
-          if (p.id !== provId) return p;
-          if (type === 'sctr') {
-            return {
-              ...p,
-              url_sctr_pdf: res.url,
-              file_sctr_name: file.name,
-              uploading_sctr: false,
-            };
-          } else {
-            return {
-              ...p,
-              url_personal_externo_pdf: res.url,
-              file_personal_name: file.name,
-              uploading_personal: false,
-            };
-          }
-        });
+      proveedores_ssoma: (prev.proveedores_ssoma || []).map((p) => {
+        if (p.id !== provId) return p;
+        const currentDocs = p.documentos || [{ id: 1, url: '' }];
         return {
-          ...prev,
-          proveedores_ssoma: updated,
-          url_sctr_pdf: updated[0]?.url_sctr_pdf || '',
-          url_personal_externo_pdf: updated[0]?.url_personal_externo_pdf || '',
+          ...p,
+          documentos: [...currentDocs, { id: Date.now(), url: '' }],
         };
-      });
-    } catch (err) {
-      setErrorMessage(err.message || 'Error al subir el archivo PDF.');
-      setFormData((prev) => ({
-        ...prev,
-        proveedores_ssoma: (prev.proveedores_ssoma || []).map((p) =>
-          p.id === provId
-            ? {
-                ...p,
-                [type === 'sctr' ? 'uploading_sctr' : 'uploading_personal']: false,
-              }
-            : p
-        ),
-      }));
-    }
+      }),
+    }));
   };
 
-  const handleRemoveProveedorPdf = (provId, type) => {
-    setFormData((prev) => {
-      const updated = (prev.proveedores_ssoma || []).map((p) => {
+  const handleRemoveDocumentoProveedor = (provId, docIndex) => {
+    setFormData((prev) => ({
+      ...prev,
+      proveedores_ssoma: (prev.proveedores_ssoma || []).map((p) => {
         if (p.id !== provId) return p;
-        if (type === 'sctr') {
-          return { ...p, url_sctr_pdf: '', file_sctr_name: '' };
-        } else {
-          return { ...p, url_personal_externo_pdf: '', file_personal_name: '' };
-        }
-      });
-      return {
-        ...prev,
-        proveedores_ssoma: updated,
-        url_sctr_pdf: updated[0]?.url_sctr_pdf || '',
-        url_personal_externo_pdf: updated[0]?.url_personal_externo_pdf || '',
-      };
-    });
+        const currentDocs = p.documentos || [{ id: 1, url: '' }];
+        if (currentDocs.length <= 1) return p;
+        return {
+          ...p,
+          documentos: currentDocs.filter((_, idx) => idx !== docIndex),
+        };
+      }),
+    }));
+  };
+
+  const handleDocumentoChangeProveedor = (provId, docIndex, url) => {
+    setFormData((prev) => ({
+      ...prev,
+      proveedores_ssoma: (prev.proveedores_ssoma || []).map((p) => {
+        if (p.id !== provId) return p;
+        const currentDocs = p.documentos || [{ id: 1, url: '' }];
+        const updatedDocs = [...currentDocs];
+        updatedDocs[docIndex] = { ...updatedDocs[docIndex], url };
+        return {
+          ...p,
+          documentos: updatedDocs,
+        };
+      }),
+    }));
+    setErrorMessage('');
   };
 
   // Manejo de múltiples fechas y franjas horarias (RF-04.2)
@@ -549,18 +502,25 @@ export default function ReservationModal({
     if (formData.requiere_ssoma) {
       const proveedores = formData.proveedores_ssoma || [];
       if (proveedores.length === 0) {
-        setErrorMessage('Debe registrar al menos un proveedor externo con sus documentos SSOMA.');
+        setErrorMessage('Debe registrar al menos un proveedor externo con sus documentos pertinentes.');
         return;
       }
       for (let i = 0; i < proveedores.length; i++) {
         const prov = proveedores[i];
         const provNombre = prov.nombre_proveedor?.trim() || `Proveedor #${i + 1}`;
-        if (!prov.url_sctr_pdf) {
-          setErrorMessage(`Es obligatorio adjuntar el documento SCTR en formato PDF para "${provNombre}".`);
-          return;
+        const docsValidos = (prov.documentos || [])
+          .map((d) => (typeof d === 'string' ? d.trim() : (d?.url || '').trim()))
+          .filter(Boolean);
+
+        if (prov.url_sctr_pdf && !docsValidos.includes(prov.url_sctr_pdf.trim())) {
+          docsValidos.push(prov.url_sctr_pdf.trim());
         }
-        if (!prov.url_personal_externo_pdf) {
-          setErrorMessage(`Es obligatorio adjuntar la Lista de Personal Externo en formato PDF para "${provNombre}".`);
+        if (prov.url_personal_externo_pdf && !docsValidos.includes(prov.url_personal_externo_pdf.trim())) {
+          docsValidos.push(prov.url_personal_externo_pdf.trim());
+        }
+
+        if (docsValidos.length === 0) {
+          setErrorMessage(`Debe ingresar al menos un enlace en "Subir documentos pertinentes" para "${provNombre}".`);
           return;
         }
       }
@@ -580,11 +540,29 @@ export default function ReservationModal({
         : [{ fecha_inicio: formData.fecha_inicio, fecha_fin: formData.fecha_fin }];
 
       const proveedoresLimpios = formData.requiere_ssoma && formData.proveedores_ssoma
-        ? formData.proveedores_ssoma.map((p, idx) => ({
-            nombre: p.nombre_proveedor?.trim() || `Proveedor #${idx + 1}`,
-            url_sctr_pdf: p.url_sctr_pdf?.trim() || null,
-            url_personal_externo_pdf: p.url_personal_externo_pdf?.trim() || null,
-          }))
+        ? formData.proveedores_ssoma.map((p, idx) => {
+            const docsValidos = (p.documentos || [])
+              .map((d) => (typeof d === 'string' ? d.trim() : (d?.url || '').trim()))
+              .filter(Boolean);
+
+            if (p.url_sctr_pdf && !docsValidos.includes(p.url_sctr_pdf.trim())) {
+              docsValidos.push(p.url_sctr_pdf.trim());
+            }
+            if (p.url_personal_externo_pdf && !docsValidos.includes(p.url_personal_externo_pdf.trim())) {
+              docsValidos.push(p.url_personal_externo_pdf.trim());
+            }
+
+            return {
+              nombre: p.nombre_proveedor?.trim() || `Proveedor #${idx + 1}`,
+              url_sctr_pdf: docsValidos[0] || null,
+              url_personal_externo_pdf: docsValidos[1] || null,
+              documentos: docsValidos.map((url, dIdx) => ({
+                id: dIdx + 1,
+                url: url,
+                nombre: `Documento ${dIdx + 1}`
+              })),
+            };
+          })
         : null;
 
       const payload = {
@@ -1353,7 +1331,7 @@ export default function ReservationModal({
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div className="flex items-center gap-2 text-xs text-emerald-950 font-bold">
                               <ShieldAlert className="w-4 h-4 text-emerald-700 shrink-0" />
-                              <span>Documentación obligatoria por cada proveedor externo (PDF, máx. 15MB):</span>
+                              <span>Documentación de seguridad por cada proveedor externo:</span>
                             </div>
                             <span className="text-[11px] text-emerald-800 font-semibold bg-emerald-100/70 px-2.5 py-0.5 rounded-full border border-emerald-300/80 self-start sm:self-auto">
                               {formData.proveedores_ssoma?.length || 1} {formData.proveedores_ssoma?.length === 1 ? 'Proveedor registrado' : 'Proveedores registrados'}
@@ -1362,175 +1340,119 @@ export default function ReservationModal({
 
                           {/* Tarjetas de Proveedores */}
                           <div className="space-y-4">
-                            {(formData.proveedores_ssoma || []).map((prov, index) => (
-                              <div
-                                key={prov.id || index}
-                                className="p-4 bg-white/95 rounded-2xl border-2 border-emerald-200/90 shadow-sm space-y-3 transition-all hover:border-emerald-300"
-                              >
-                                {/* Encabezado del Proveedor */}
-                                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-emerald-100">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 font-black text-xs shrink-0">
-                                      #{index + 1}
-                                    </span>
-                                    <div className="flex-1 max-w-md">
-                                      <input
-                                        type="text"
-                                        value={prov.nombre_proveedor}
-                                        onChange={(e) => handleUpdateProveedorName(prov.id, e.target.value)}
-                                        placeholder={`Nombre del Proveedor #${index + 1} (ej. Empresa de Catering, Sonido, etc.)`}
-                                        className="w-full text-xs font-bold text-slate-800 bg-emerald-50/50 hover:bg-emerald-50 focus:bg-white border border-emerald-200 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 focus:outline-none transition-colors"
-                                      />
-                                    </div>
-                                  </div>
+                            {(formData.proveedores_ssoma || []).map((prov, index) => {
+                              const docs = prov.documentos && prov.documentos.length > 0
+                                ? prov.documentos
+                                : [{ id: 1, url: '' }];
 
-                                  {(formData.proveedores_ssoma || []).length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveProveedor(prov.id)}
-                                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors font-semibold shrink-0"
-                                      title="Quitar este proveedor"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                      <span className="hidden sm:inline">Quitar</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Inputs de documentos PDF para este proveedor */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {/* Input 1: SCTR en PDF */}
-                                  <div className="p-3 bg-emerald-50/30 rounded-xl border border-emerald-200/90 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                        <span>1. Documento SCTR (PDF) *</span>
+                              return (
+                                <div
+                                  key={prov.id || index}
+                                  className="p-4 bg-white/95 rounded-2xl border-2 border-emerald-200/90 shadow-sm space-y-3.5 transition-all hover:border-emerald-300"
+                                >
+                                  {/* Encabezado del Proveedor */}
+                                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-emerald-100">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 font-black text-xs shrink-0">
+                                        #{index + 1}
                                       </span>
-                                      {prov.url_sctr_pdf && (
-                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
-                                          Cargado ✓
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 leading-tight">
-                                      Seguro Complementario de Trabajo de Riesgo vigente para el personal de este proveedor.
-                                    </p>
-
-                                    {prov.url_sctr_pdf ? (
-                                      <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-emerald-200 text-xs">
-                                        <span className="truncate font-medium text-emerald-950 flex-1" title={prov.file_sctr_name || 'SCTR_cargado.pdf'}>
-                                          📄 {prov.file_sctr_name || 'SCTR_cargado.pdf'}
-                                        </span>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => window.open(api.getFileUrl(prov.url_sctr_pdf), '_blank')}
-                                            className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded transition-colors"
-                                            title="Ver documento en nueva pestaña"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveProveedorPdf(prov.id, 'sctr')}
-                                            className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition-colors"
-                                            title="Quitar archivo"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/60 rounded-xl cursor-pointer transition-all">
-                                        {prov.uploading_sctr ? (
-                                          <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
-                                            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                                            <span>Subiendo SCTR...</span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
-                                            <UploadCloud className="w-4 h-4 text-emerald-600" />
-                                            <span>Adjuntar SCTR en PDF</span>
-                                          </div>
-                                        )}
+                                      <div className="flex-1 max-w-md">
                                         <input
-                                          type="file"
-                                          accept=".pdf"
-                                          disabled={prov.uploading_sctr}
-                                          onChange={(e) => handleUploadProveedorPdf(e, prov.id, 'sctr')}
-                                          className="hidden"
+                                          type="text"
+                                          value={prov.nombre_proveedor}
+                                          onChange={(e) => handleUpdateProveedorName(prov.id, e.target.value)}
+                                          placeholder={`Nombre del Proveedor #${index + 1} (ej. Empresa de Catering, Sonido, etc.)`}
+                                          className="w-full text-xs font-bold text-slate-800 bg-emerald-50/50 hover:bg-emerald-50 focus:bg-white border border-emerald-200 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 focus:outline-none transition-colors"
                                         />
-                                      </label>
+                                      </div>
+                                    </div>
+
+                                    {(formData.proveedores_ssoma || []).length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveProveedor(prov.id)}
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors font-semibold shrink-0"
+                                        title="Quitar este proveedor"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Quitar Proveedor</span>
+                                      </button>
                                     )}
                                   </div>
 
-                                  {/* Input 2: Lista de Personal Externo en PDF */}
-                                  <div className="p-3 bg-emerald-50/30 rounded-xl border border-emerald-200/90 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                        <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                        <span>2. Lista Personal Externo (PDF) *</span>
-                                      </span>
-                                      {prov.url_personal_externo_pdf && (
-                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
-                                          Cargado ✓
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 leading-tight">
-                                      Nómina oficial con nombres completos y DNI del personal de este proveedor.
-                                    </p>
-
-                                    {prov.url_personal_externo_pdf ? (
-                                      <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-emerald-200 text-xs">
-                                        <span className="truncate font-medium text-emerald-950 flex-1" title={prov.file_personal_name || 'Personal_Externo.pdf'}>
-                                          📄 {prov.file_personal_name || 'Personal_Externo.pdf'}
-                                        </span>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => window.open(api.getFileUrl(prov.url_personal_externo_pdf), '_blank')}
-                                            className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded transition-colors"
-                                            title="Ver documento en nueva pestaña"
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveProveedorPdf(prov.id, 'personal')}
-                                            className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition-colors"
-                                            title="Quitar archivo"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        </div>
+                                  {/* Subir documentos pertinentes para este proveedor */}
+                                  <div className="p-3.5 bg-emerald-50/40 rounded-xl border border-emerald-200/80 space-y-3">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                      <div>
+                                        <label className="block text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                                          Subir documentos pertinentes <span className="text-emerald-700">*</span>
+                                        </label>
+                                        <p className="text-[11px] text-slate-600 mt-0.5">
+                                          Pegue el enlace (Google Drive, OneDrive, etc.) a los documentos requeridos (SCTR, ATS, nómina, etc.).
+                                        </p>
                                       </div>
-                                    ) : (
-                                      <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/60 rounded-xl cursor-pointer transition-all">
-                                        {prov.uploading_personal ? (
-                                          <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
-                                            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                                            <span>Subiendo Lista...</span>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddDocumentoProveedor(prov.id)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200/80 text-emerald-900 border border-emerald-300 text-xs font-bold transition-all shadow-xs"
+                                      >
+                                        <Plus className="w-3.5 h-3.5 text-emerald-700" />
+                                        <span>Añadir más campos</span>
+                                      </button>
+                                    </div>
+
+                                    {/* Lista dinámica de campos de enlaces para este proveedor */}
+                                    <div className="space-y-2">
+                                      {docs.map((doc, docIdx) => (
+                                        <div
+                                          key={doc.id || docIdx}
+                                          className="flex items-center gap-2 bg-white p-2 rounded-xl border border-emerald-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
+                                        >
+                                          <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                                            {docIdx + 1}
                                           </div>
-                                        ) : (
-                                          <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold py-1">
-                                            <UploadCloud className="w-4 h-4 text-emerald-600" />
-                                            <span>Adjuntar Lista en PDF</span>
+
+                                          <div className="flex-1 relative">
+                                            <input
+                                              type="url"
+                                              required={docIdx === 0}
+                                              value={doc.url}
+                                              onChange={(e) => handleDocumentoChangeProveedor(prov.id, docIdx, e.target.value)}
+                                              placeholder={`Enlace al documento ${docIdx + 1} (ej. https://drive.google.com/file/d/...)`}
+                                              className="w-full bg-transparent px-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
+                                            />
                                           </div>
-                                        )}
-                                        <input
-                                          type="file"
-                                          accept=".pdf"
-                                          disabled={prov.uploading_personal}
-                                          onChange={(e) => handleUploadProveedorPdf(e, prov.id, 'personal')}
-                                          className="hidden"
-                                        />
-                                      </label>
-                                    )}
+
+                                          {doc.url && (
+                                            <a
+                                              href={doc.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              title="Probar enlace"
+                                              className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded transition-colors shrink-0"
+                                            >
+                                              <ExternalLink className="w-3.5 h-3.5" />
+                                            </a>
+                                          )}
+
+                                          {docs.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveDocumentoProveedor(prov.id, docIdx)}
+                                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors shrink-0"
+                                              title="Eliminar este campo"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
 
                           {/* Botón para añadir más proveedores externos */}
@@ -1541,7 +1463,7 @@ export default function ReservationModal({
                               className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-emerald-100/70 hover:bg-emerald-200 text-emerald-900 border-2 border-dashed border-emerald-400 hover:border-emerald-600 rounded-2xl text-xs font-bold transition-all shadow-xs group"
                             >
                               <Plus className="w-4 h-4 text-emerald-700 group-hover:scale-125 transition-transform" />
-                              <span>+ Añadir otro proveedor externo (SCTR y Lista de Personal)</span>
+                              <span>+ Añadir otro proveedor externo</span>
                             </button>
                           </div>
                         </div>
