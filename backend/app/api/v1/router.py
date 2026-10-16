@@ -7,6 +7,7 @@ from app.api.v1.areas_solicitantes import router as areas_solicitantes_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.archivos import router as archivos_router
 from app.api.v1.accesos import router as accesos_router
+from app.api.v1.pacientes import router as pacientes_router
 
 api_router = APIRouter()
 
@@ -18,5 +19,8 @@ api_router.include_router(areas_solicitantes_router, prefix="/areas-solicitantes
 api_router.include_router(admin_router, prefix="/admin", tags=["Administración Jefatura de Operaciones"])
 api_router.include_router(accesos_router, prefix="/accesos", tags=["Control de Accesos"])
 api_router.include_router(accesos_router, prefix="/admin/accesos", tags=["Control de Accesos Admin"])
+api_router.include_router(pacientes_router, prefix="/pacientes", tags=["Pacientes Prácticas Clínicas"])
+api_router.include_router(pacientes_router, prefix="/admin/pacientes", tags=["Pacientes Prácticas Clínicas Admin"])
 api_router.include_router(archivos_router)
+
 

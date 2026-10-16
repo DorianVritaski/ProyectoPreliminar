@@ -27,7 +27,8 @@ import {
   UserCheck,
   AlertTriangle,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  HeartPulse
 } from 'lucide-react';
 import { api } from '../api/client';
 import { formatDateShort, formatTimeRange } from '../utils/formatters';
@@ -294,6 +295,15 @@ export default function AccesosModule() {
             >
               Consultar Pase Digital
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/accesos/pacientes')}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-700/60 transition-all flex items-center gap-1.5 ml-1"
+              title="Registro de Pacientes para Odontología, Psicología y Enfermería"
+            >
+              <HeartPulse className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Pacientes Clínicos</span>
+            </button>
           </div>
         </div>
       </header>
@@ -305,16 +315,38 @@ export default function AccesosModule() {
         {/* ========================================================= */}
         {activeTab === 'solicitar' && !submitSuccess && (
           <div className="space-y-8 animate-in fade-in duration-200">
+            {/* Callout para Estudiantes de Prácticas Clínicas */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-teal-950/50 to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-emerald-200 shadow-lg">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                  <HeartPulse className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Sub-Módulo Clínico
+                    </span>
+                    <strong className="text-white text-xs sm:text-sm">
+                      ¿Vas a registrar el ingreso de un paciente?
+                    </strong>
+                  </div>
+                  <p className="text-[11px] text-emerald-300/80 mt-1">
+                    Estudiantes de Odontología, Psicología (Gesell) y Enfermería / Terapia Física deben usar el formulario unificado de pacientes para adjuntar su consentimiento informado y autorizar el pase en garita.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/accesos/pacientes')}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/30 w-full sm:w-auto"
+              >
+                <span>Ir a Registro de Pacientes</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
             {/* Encabezado del Formulario */}
             <div className="text-center space-y-2 max-w-2xl mx-auto">
-
-              {/*
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Gestión Digital de Ingreso a Campus</span>
-              </div>
-              */}
-
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Solicitud de Autorización y Pase de Acceso
               </h1>

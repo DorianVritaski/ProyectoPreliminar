@@ -20,7 +20,7 @@ function spaFallbackPlugin() {
         fs.writeFileSync(path.join(distDir, '404.html'), indexHtml)
 
         // 2. Carpetas estáticas con index.html para acceso directo sin 404
-        const routes = ['eventos', 'accesos']
+        const routes = ['eventos', 'accesos', 'accesos/pacientes']
         for (const r of routes) {
           const rDir = path.join(distDir, r)
           if (!fs.existsSync(rDir)) {

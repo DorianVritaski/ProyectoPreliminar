@@ -280,4 +280,37 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  // -------------------------------------------------------------
+  // Sub-Módulo de Pacientes Clínicos (Odonto, Psico, Enfermería)
+  // -------------------------------------------------------------
+  getPacientes: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.fecha) q.append('fecha', params.fecha);
+    if (params.escuela_profesional) q.append('escuela_profesional', params.escuela_profesional);
+    if (params.ingresado_garita !== undefined && params.ingresado_garita !== null && params.ingresado_garita !== '') {
+      q.append('ingresado_garita', params.ingresado_garita);
+    }
+    if (params.estado) q.append('estado', params.estado);
+    if (params.search) q.append('search', params.search);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return fetchJSON(`/pacientes${qs}`);
+  },
+  crearPaciente: (payload) =>
+    fetchJSON('/pacientes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getPacienteByCodigo: (codigoOId) =>
+    fetchJSON(`/pacientes/${codigoOId}`),
+  checkInPaciente: (id, payload = {}) =>
+    fetchJSON(`/pacientes/${id}/check-in`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updatePacienteSSOMA: (id, payload) =>
+    fetchJSON(`/pacientes/${id}/ssoma`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
 };

@@ -20,8 +20,9 @@ async def lifespan(app: FastAPI):
             Base.metadata.create_all(bind=engine)
             with SessionLocal() as db:
                 seed_database(db)
-                from app.services.seed_data import seed_accesos_sample
+                from app.services.seed_data import seed_accesos_sample, seed_pacientes_sample
                 seed_accesos_sample(db)
+                seed_pacientes_sample(db)
             print("Base de datos lista e inicializada con éxito.")
             break
         except OperationalError as e:

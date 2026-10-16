@@ -16,7 +16,8 @@ import {
   ExternalLink,
   ChevronRight,
   Lock,
-  Compass
+  Compass,
+  HeartPulse
 } from 'lucide-react';
 
 export default function LandingHome() {
@@ -254,8 +255,48 @@ export default function LandingHome() {
           </div>
         </div>
 
+        {/* Banner Especial: Módulo Unificado de Pacientes Clínicos */}
+        <div className="mt-8 max-w-5xl mx-auto w-full">
+          <div
+            onClick={() => navigate('/accesos/pacientes')}
+            className="group relative bg-gradient-to-r from-emerald-950/80 via-teal-900/60 to-slate-900/80 hover:from-emerald-900/90 hover:to-slate-850 p-6 sm:p-7 rounded-3xl border border-emerald-500/30 hover:border-emerald-400/60 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-5 cursor-pointer overflow-hidden"
+          >
+            <div className="flex items-start sm:items-center gap-4 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform duration-300 shrink-0">
+                <HeartPulse className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Nuevo Sub-Módulo Clínico
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Odontología • Psicología (Cámara Gesell) • Enfermería / T. Física
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                  Ingreso de Pacientes para Prácticas Clínicas / Académicas
+                </h3>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Registro unificado para estudiantes: sube tu consentimiento informado escaneado y autoriza el ingreso de tus pacientes en tiempo real con garita de vigilancia.
+                </p>
+              </div>
+            </div>
+
+            <div className="sm:self-center shrink-0 relative z-10">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 group-hover:shadow-emerald-500/40 transition-all w-full sm:w-auto justify-center"
+              >
+                <span>Registrar Paciente</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* 4. Mini Barra Informativa de Soporte e Integración */}
-        <div className="mt-12 max-w-5xl mx-auto w-full bg-slate-950/40 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        <div className="mt-8 max-w-5xl mx-auto w-full bg-slate-950/40 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
               <Compass className="w-4 h-4" />

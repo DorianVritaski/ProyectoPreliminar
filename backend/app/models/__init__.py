@@ -5,6 +5,7 @@ from app.models.solicitud import Solicitud, SolicitudRecurso
 from app.models.area_solicitante import AreaSolicitante
 from app.models.usuario_admin import UsuarioAdmin
 from app.models.solicitud_acceso import SolicitudAcceso
+from app.models.solicitud_paciente import SolicitudPaciente
 
 __all__ = [
     "Ambiente",
@@ -15,4 +16,5 @@ __all__ = [
     "AreaSolicitante",
     "UsuarioAdmin",
     "SolicitudAcceso",
+    "SolicitudPaciente",
 ]

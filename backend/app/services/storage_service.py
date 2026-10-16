@@ -23,22 +23,35 @@ def sanitize_filename(filename: str) -> str:
     return f"{clean_name}{ext.lower()}"
 
 
+ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
+
+MIME_TYPES = {
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+}
+
+
 async def save_uploaded_pdf(file: UploadFile) -> dict:
     """
-    Valida y guarda un documento en PDF.
+    Valida y guarda un documento en PDF o Imagen (.pdf, .jpg, .jpeg, .png).
     En fase actual guarda en el disco local y retorna la URL relativa /api/v1/archivos/{filename}.
     Si están configuradas las credenciales de Supabase, sube al Bucket de Supabase Storage.
     """
     # 1. Validación de extensión y tipo MIME
     original_name = file.filename or "documento.pdf"
-    if not original_name.lower().endswith(".pdf"):
+    _, ext = os.path.splitext(original_name)
+    ext_lower = ext.lower()
+    if ext_lower not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se permiten archivos en formato PDF (.pdf)."
+            detail="Solo se permiten archivos en formato PDF (.pdf) o imágenes (.jpg, .jpeg, .png)."
         )
 
     clean_name = sanitize_filename(original_name)
     unique_name = f"{uuid.uuid4().hex[:12]}_{clean_name}"
+    mime_type = MIME_TYPES.get(ext_lower, "application/octet-stream")
     
     # 2. Leer contenido y verificar tamaño
     content = await file.read()
@@ -65,7 +78,7 @@ async def save_uploaded_pdf(file: UploadFile) -> dict:
                 headers={
                     "Authorization": f"Bearer {SUPABASE_KEY}",
                     "apikey": SUPABASE_KEY,
-                    "Content-Type": "application/pdf"
+                    "Content-Type": mime_type
                 },
                 method="POST"
             )

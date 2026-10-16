@@ -29,9 +29,18 @@ def obtener_documento(filename: str):
             detail="El documento solicitado no fue encontrado en el servidor."
         )
 
+    ext = os.path.splitext(filename)[1].lower()
+    media_types = {
+        ".pdf": "application/pdf",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png"
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+
     return FileResponse(
         path=str(path),
-        media_type="application/pdf",
+        media_type=media_type,
         headers={
             "Content-Disposition": f"inline; filename=\"{path.name}\"",
             "Cache-Control": "public, max-age=86400"

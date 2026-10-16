@@ -27,6 +27,7 @@ import {
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import SSOMAAccesosTab from './SSOMAAccesosTab';
+import PacientesSSOMATab from './PacientesSSOMATab';
 
 export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicData }) {
   const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos'
@@ -264,11 +265,11 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
         </div>
       )}
 
-      {/* Sub-tab Navigation: Evaluación de Eventos vs Gestión de Accesos */}
-      <div className="flex border-b border-slate-200/80 gap-2 bg-white px-4 pt-3 rounded-2xl shadow-xs">
+      {/* Sub-tab Navigation: Evaluación de Eventos vs Gestión de Accesos vs Pacientes Clínicos */}
+      <div className="flex border-b border-slate-200/80 gap-2 bg-white px-4 pt-3 rounded-2xl shadow-xs overflow-x-auto">
         <button
           onClick={() => setActiveMainTab('eventos')}
-          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 ${
             activeMainTab === 'eventos'
               ? 'border-emerald-600 text-emerald-800 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -279,7 +280,7 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
         </button>
         <button
           onClick={() => setActiveMainTab('accesos')}
-          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 ${
             activeMainTab === 'accesos'
               ? 'border-emerald-600 text-emerald-800 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -288,11 +289,27 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
           <Ticket className="w-4 h-4" />
           <span>Gestión de Accesos al Campus</span>
         </button>
+        <button
+          onClick={() => setActiveMainTab('pacientes')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+            activeMainTab === 'pacientes'
+              ? 'border-emerald-600 text-emerald-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-emerald-600" />
+          <span>Pacientes Clínicos (Odonto / Psico / Enfermería)</span>
+        </button>
       </div>
 
       {/* Sub-tab: Gestión de Accesos */}
       {activeMainTab === 'accesos' && (
         <SSOMAAccesosTab adminUser={adminUser} showFeedback={showFeedback} />
+      )}
+
+      {/* Sub-tab: Pacientes Clínicos */}
+      {activeMainTab === 'pacientes' && (
+        <PacientesSSOMATab adminUser={adminUser} showFeedback={showFeedback} />
       )}
 
       {/* Sub-tab: Evaluación de Eventos */}

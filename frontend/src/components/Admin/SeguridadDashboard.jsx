@@ -32,9 +32,10 @@ import {
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import SeguridadAccesosTab from './SeguridadAccesosTab';
+import PacientesSeguridadTab from './PacientesSeguridadTab';
 
 export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPublicData }) {
-  const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos'
+  const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos' | 'pacientes'
   const [solicitudes, setSolicitudes] = useState([]);
   const [ambientes, setAmbientes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -283,11 +284,10 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
       {/* Toast Feedback */}
       {feedbackMessage.text && (
         <div
-          className={`p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 print:hidden animate-in fade-in ${
-            feedbackMessage.type === 'error'
+          className={`p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 print:hidden animate-in fade-in ${feedbackMessage.type === 'error'
               ? 'bg-rose-50 text-rose-800 border border-rose-200'
               : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-          }`}
+            }`}
         >
           {feedbackMessage.type === 'error' ? (
             <AlertTriangle className="w-4 h-4 text-rose-600" />
@@ -302,25 +302,33 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
       <div className="flex border-b border-slate-200/80 gap-2 bg-white px-4 pt-3 rounded-2xl shadow-xs print:hidden">
         <button
           onClick={() => setActiveMainTab('eventos')}
-          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
-            activeMainTab === 'eventos'
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${activeMainTab === 'eventos'
               ? 'border-indigo-600 text-indigo-800 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Monitoreo de Eventos en Campus</span>
         </button>
         <button
           onClick={() => setActiveMainTab('accesos')}
-          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${
-            activeMainTab === 'accesos'
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${activeMainTab === 'accesos'
               ? 'border-indigo-600 text-indigo-800 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           <Ticket className="w-4 h-4" />
           <span>Control de Accesos en Garita (Tickets y Nóminas)</span>
+        </button>
+        <button
+          onClick={() => setActiveMainTab('pacientes')}
+          className={`pb-3 px-4 font-semibold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition-all ${activeMainTab === 'pacientes'
+              ? 'border-indigo-600 text-indigo-800 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Ingreso de Pacientes (Prácticas Clínicas)</span>
         </button>
       </div>
 
@@ -331,6 +339,13 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
         </div>
       )}
 
+      {/* Sub-tab: Ingreso de Pacientes (Prácticas Clínicas) */}
+      {activeMainTab === 'pacientes' && (
+        <div className="print:hidden">
+          <PacientesSeguridadTab adminUser={adminUser} showFeedback={showFeedback} />
+        </div>
+      )}
+
       {/* Sub-tab: Monitoreo de Eventos en Campus */}
       {activeMainTab === 'eventos' && (
         <>
@@ -338,33 +353,33 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
           {/* 2. Tarjetas de Resumen / Métricas Operativas                   */}
           {/* ============================================================== */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Eventos Hoy</span>
-            <Calendar className="w-4 h-4 text-indigo-500" />
-          </div>
-          <p className="text-2xl font-black text-slate-900">{metrics.totalHoy}</p>
-          <span className="text-[11px] text-slate-400 block">Programados en campus</span>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+                <span>Eventos Hoy</span>
+                <Calendar className="w-4 h-4 text-indigo-500" />
+              </div>
+              <p className="text-2xl font-black text-slate-900">{metrics.totalHoy}</p>
+              <span className="text-[11px] text-slate-400 block">Programados en campus</span>
+            </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Ingreso Autorizado</span>
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
-          </div>
-          <p className="text-2xl font-black text-emerald-700">{metrics.aprobadosHoy}</p>
-          <span className="text-[11px] text-emerald-600 font-medium block">Aprobación Final Otorgada</span>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+                <span>Ingreso Autorizado</span>
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+              </div>
+              <p className="text-2xl font-black text-emerald-700">{metrics.aprobadosHoy}</p>
+              <span className="text-[11px] text-emerald-600 font-medium block">Aprobación Final Otorgada</span>
+            </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Con Personal Externo</span>
-            <UserCheck className="w-4 h-4 text-amber-500" />
-          </div>
-          <p className="text-2xl font-black text-amber-700">{metrics.conPersonalExterno}</p>
-          <span className="text-[11px] text-amber-600 font-medium block">Requieren SCTR / Lista</span>
-        </div>
-
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
+                <span>Con Personal Externo</span>
+                <UserCheck className="w-4 h-4 text-amber-500" />
+              </div>
+              <p className="text-2xl font-black text-amber-700">{metrics.conPersonalExterno}</p>
+              <span className="text-[11px] text-amber-600 font-medium block">Requieren SCTR / Lista</span>
+            </div>
+            {/*
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Insumos de Seguridad</span>
@@ -373,562 +388,551 @@ export default function SeguridadDashboard({ adminUser, onLogout, onRefreshPubli
           <p className="text-2xl font-black text-blue-700">{metrics.conInsumosSeguridad}</p>
           <span className="text-[11px] text-blue-600 font-medium block">Vallas / Resguardo / Accesos</span>
         </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* 3. Barra de Filtros Operativos Avanzados                       */}
-      {/* ============================================================== */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 print:hidden">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-          {/* Presets de Fecha */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Fecha:</span>
-            </span>
-            <button
-              onClick={() => {
-                setFilterFechaPreset('HOY');
-                setCustomDate('');
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filterFechaPreset === 'HOY'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => {
-                setFilterFechaPreset('MANANA');
-                setCustomDate('');
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filterFechaPreset === 'MANANA'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Mañana
-            </button>
-            <button
-              onClick={() => {
-                setFilterFechaPreset('SEMANA');
-                setCustomDate('');
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filterFechaPreset === 'SEMANA'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Esta Semana
-            </button>
-            <button
-              onClick={() => {
-                setFilterFechaPreset('TODAS');
-                setCustomDate('');
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                filterFechaPreset === 'TODAS'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              Todas
-            </button>
-
-            {/* Selector de fecha específica */}
-            <input
-              type="date"
-              value={customDate}
-              onChange={(e) => {
-                setCustomDate(e.target.value);
-                setFilterFechaPreset(e.target.value ? 'CUSTOM' : 'TODAS');
-              }}
-              className="px-2.5 py-1 text-xs border border-slate-200 rounded-xl bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:border-brand-500"
-            />
+        */}
           </div>
 
-          {/* Filtro de Estado General */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-500">Estado:</span>
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setFilterEstado('APROBADO')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  filterEstado === 'APROBADO'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Aprobados
-              </button>
-              <button
-                onClick={() => setFilterEstado('PENDIENTE')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  filterEstado === 'PENDIENTE'
-                    ? 'bg-amber-500 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Pendientes
-              </button>
-              <button
-                onClick={() => setFilterEstado('RECHAZADO')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  filterEstado === 'RECHAZADO'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Rechazados
-              </button>
-              <button
-                onClick={() => setFilterEstado('TODAS')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                  filterEstado === 'TODAS'
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Todos
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Fila secundaria: Selector de Ambiente, Buscador y Toggles */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-1 border-t border-slate-100">
-          {/* Dropdown de Ambiente */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Ambiente / Ubicación
-            </label>
-            <select
-              value={filterAmbienteId}
-              onChange={(e) => setFilterAmbienteId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-500"
-            >
-              <option value="">Todos los ambientes físicos</option>
-              {ambientes.map((amb) => (
-                <option key={amb.id} value={amb.id}>
-                  {amb.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Buscador de texto */}
-          <div className="sm:col-span-2">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Búsqueda Rápida (Ticket, Solicitante, Detalle)
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Buscar por código de ticket, correo, evento o facultad..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 font-medium"
-              />
-            </div>
-          </div>
-
-          {/* Botón de Limpiar Filtros */}
-          <div className="flex items-end">
-            <button
-              onClick={handleResetFilters}
-              className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Restablecer Filtros</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Toggles rápidos de Seguridad */}
-        <div className="flex items-center gap-2 pt-1 flex-wrap">
-          <button
-            onClick={() => setOnlyExternalPersonnel((prev) => !prev)}
-            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 ${
-              onlyExternalPersonnel
-                ? 'bg-amber-100 text-amber-900 border-amber-300'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-            }`}
-          >
-            <span>⚠️ Solo Personal Externo (SSOMA)</span>
-          </button>
-
-          <button
-            onClick={() => setOnlySecuritySupplies((prev) => !prev)}
-            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 ${
-              onlySecuritySupplies
-                ? 'bg-blue-100 text-blue-900 border-blue-300'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-            }`}
-          >
-            <span>🛡️ Solo con Insumos de Seguridad (Vallas/Resguardo)</span>
-          </button>
-
-          <span className="text-xs text-slate-400 font-medium ml-auto">
-            Mostrando <strong>{filteredSolicitudes.length}</strong> eventos registrados
-          </span>
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* 4. Lista y Tarjetas de Solicitudes para Control de Acceso      */}
-      {/* ============================================================== */}
-      {loading ? (
-        <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200">
-          <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
-          <p className="text-sm font-bold text-slate-700">Cargando eventos para inspección de seguridad...</p>
-        </div>
-      ) : filteredSolicitudes.length === 0 ? (
-        <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200">
-          <Shield className="w-10 h-10 text-slate-300 mx-auto" />
-          <h4 className="text-base font-bold text-slate-700">No se encontraron eventos con los filtros seleccionados</h4>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Ajuste la fecha, el estado o el ambiente para visualizar los accesos programados en campus.
-          </p>
-          <button
-            onClick={handleResetFilters}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold"
-          >
-            Ver eventos aprobados de hoy
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredSolicitudes.map((sol) => {
-            const isApproved = sol.estado === 'APROBADO';
-            const isPending = sol.estado === 'PENDIENTE';
-            const isRejected = sol.estado === 'RECHAZADO';
-            const hasSupplies = hasSecuritySupplies(sol);
-
-            // Filtrar recursos que son específicamente de seguridad o logística crítica
-            const securityResources = (sol.recursos || []).filter((r) => {
-              const nom = (r.nombre || '').toLowerCase();
-              return (
-                nom.includes('valla') ||
-                nom.includes('acceso') ||
-                nom.includes('resguardo') ||
-                nom.includes('seguridad') ||
-                nom.includes('vigilancia') ||
-                r.area_destino_id === 3
-              );
-            });
-
-            return (
-              <div
-                key={sol.id}
-                className={`bg-white rounded-3xl border transition-all shadow-xs overflow-hidden ${
-                  isApproved
-                    ? 'border-emerald-200 hover:border-emerald-300'
-                    : isPending
-                    ? 'border-amber-200 hover:border-amber-300'
-                    : 'border-slate-200 opacity-80'
-                }`}
-              >
-                {/* Cabecera de la Tarjeta */}
-                <div
-                  className={`p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b ${
-                    isApproved
-                      ? 'bg-emerald-50/50 border-emerald-100'
-                      : isPending
-                      ? 'bg-amber-50/50 border-amber-100'
-                      : 'bg-slate-50/60 border-slate-100'
-                  }`}
+          {/* ============================================================== */}
+          {/* 3. Barra de Filtros Operativos Avanzados                       */}
+          {/* ============================================================== */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 print:hidden">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+              {/* Presets de Fecha */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Fecha:</span>
+                </span>
+                <button
+                  onClick={() => {
+                    setFilterFechaPreset('HOY');
+                    setCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterFechaPreset === 'HOY'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-black text-sm px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
-                      #{sol.codigo_ticket}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" />
-                          <span>{formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}</span>
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          • {formatDateShort(sol.fecha_inicio)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  Hoy
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterFechaPreset('MANANA');
+                    setCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterFechaPreset === 'MANANA'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                  Mañana
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterFechaPreset('SEMANA');
+                    setCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterFechaPreset === 'SEMANA'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                  Esta Semana
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterFechaPreset('TODAS');
+                    setCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${filterFechaPreset === 'TODAS'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                  Todas
+                </button>
 
-                  {/* Insignia de Autorización General para Garita */}
-                  <div>
-                    {isApproved ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white shadow-xs">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>AUTORIZADO PARA INGRESO</span>
-                      </span>
-                    ) : isPending ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500 text-white shadow-xs">
-                        <Clock className="w-4 h-4" />
-                        <span>EN EVALUACIÓN (SIN APROBACIÓN FINAL)</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-600 text-white shadow-xs">
-                        <XCircle className="w-4 h-4" />
-                        <span>INGRESO NO AUTORIZADO (RECHAZADO)</span>
-                      </span>
-                    )}
-                  </div>
+                {/* Selector de fecha específica */}
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => {
+                    setCustomDate(e.target.value);
+                    setFilterFechaPreset(e.target.value ? 'CUSTOM' : 'TODAS');
+                  }}
+                  className="px-2.5 py-1 text-xs border border-slate-200 rounded-xl bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Filtro de Estado General */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-500">Estado:</span>
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setFilterEstado('APROBADO')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterEstado === 'APROBADO'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    Aprobados
+                  </button>
+                  <button
+                    onClick={() => setFilterEstado('PENDIENTE')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterEstado === 'PENDIENTE'
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    Pendientes
+                  </button>
+                  <button
+                    onClick={() => setFilterEstado('RECHAZADO')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterEstado === 'RECHAZADO'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    Rechazados
+                  </button>
+                  <button
+                    onClick={() => setFilterEstado('TODAS')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${filterEstado === 'TODAS'
+                        ? 'bg-slate-800 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    Todos
+                  </button>
                 </div>
+              </div>
+            </div>
 
-                {/* Cuerpo de la Tarjeta */}
-                <div className="p-5 space-y-4">
-                  {/* Fila de Ubicación, Solicitante y Propósito */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    {/* Ubicación / Ambiente */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-brand-600" />
-                        Ambiente / Espacio Físico
-                      </span>
-                      <p className="font-bold text-slate-900 text-sm">{sol.ambiente_nombre || 'No especificado'}</p>
-                    </div>
+            {/* Fila secundaria: Selector de Ambiente, Buscador y Toggles */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-1 border-t border-slate-100">
+              {/* Dropdown de Ambiente */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Ambiente / Ubicación
+                </label>
+                <select
+                  value={filterAmbienteId}
+                  onChange={(e) => setFilterAmbienteId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-brand-500"
+                >
+                  <option value="">Todos los ambientes físicos</option>
+                  {ambientes.map((amb) => (
+                    <option key={amb.id} value={amb.id}>
+                      {amb.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                    {/* Solicitante & Contacto Directo */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-brand-600" />
-                        Solicitante & Facultad
-                      </span>
-                      <p className="font-bold text-slate-800">{sol.area_solicitante || 'Facultad no especificada'}</p>
-                      <div className="flex items-center gap-2 text-slate-500 text-[11px] flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          {sol.correo_solicitante}
+              {/* Buscador de texto */}
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Búsqueda Rápida (Ticket, Solicitante, Detalle)
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por código de ticket, correo, evento o facultad..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Botón de Limpiar Filtros */}
+              <div className="flex items-end">
+                <button
+                  onClick={handleResetFilters}
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-600 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Restablecer Filtros</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Toggles rápidos de Seguridad */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <button
+                onClick={() => setOnlyExternalPersonnel((prev) => !prev)}
+                className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 ${onlyExternalPersonnel
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+              >
+                <span>⚠️ Solo Personal Externo (SSOMA)</span>
+              </button>
+
+              <button
+                onClick={() => setOnlySecuritySupplies((prev) => !prev)}
+                className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 ${onlySecuritySupplies
+                    ? 'bg-blue-100 text-blue-900 border-blue-300'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+              >
+                <span>🛡️ Solo con Insumos de Seguridad (Vallas/Resguardo)</span>
+              </button>
+
+              <span className="text-xs text-slate-400 font-medium ml-auto">
+                Mostrando <strong>{filteredSolicitudes.length}</strong> eventos registrados
+              </span>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* 4. Lista y Tarjetas de Solicitudes para Control de Acceso      */}
+          {/* ============================================================== */}
+          {loading ? (
+            <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200">
+              <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
+              <p className="text-sm font-bold text-slate-700">Cargando eventos para inspección de seguridad...</p>
+            </div>
+          ) : filteredSolicitudes.length === 0 ? (
+            <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200">
+              <Shield className="w-10 h-10 text-slate-300 mx-auto" />
+              <h4 className="text-base font-bold text-slate-700">No se encontraron eventos con los filtros seleccionados</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Ajuste la fecha, el estado o el ambiente para visualizar los accesos programados en campus.
+              </p>
+              <button
+                onClick={handleResetFilters}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold"
+              >
+                Ver eventos aprobados de hoy
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSolicitudes.map((sol) => {
+                const isApproved = sol.estado === 'APROBADO';
+                const isPending = sol.estado === 'PENDIENTE';
+                const isRejected = sol.estado === 'RECHAZADO';
+                const hasSupplies = hasSecuritySupplies(sol);
+
+                // Filtrar recursos que son específicamente de seguridad o logística crítica
+                const securityResources = (sol.recursos || []).filter((r) => {
+                  const nom = (r.nombre || '').toLowerCase();
+                  return (
+                    nom.includes('valla') ||
+                    nom.includes('acceso') ||
+                    nom.includes('resguardo') ||
+                    nom.includes('seguridad') ||
+                    nom.includes('vigilancia') ||
+                    r.area_destino_id === 3
+                  );
+                });
+
+                return (
+                  <div
+                    key={sol.id}
+                    className={`bg-white rounded-3xl border transition-all shadow-xs overflow-hidden ${isApproved
+                        ? 'border-emerald-200 hover:border-emerald-300'
+                        : isPending
+                          ? 'border-amber-200 hover:border-amber-300'
+                          : 'border-slate-200 opacity-80'
+                      }`}
+                  >
+                    {/* Cabecera de la Tarjeta */}
+                    <div
+                      className={`p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b ${isApproved
+                          ? 'bg-emerald-50/50 border-emerald-100'
+                          : isPending
+                            ? 'bg-amber-50/50 border-amber-100'
+                            : 'bg-slate-50/60 border-slate-100'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-black text-sm px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs">
+                          #{sol.codigo_ticket}
                         </span>
-                        {sol.telefono && (
-                          <span className="flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                            <Phone className="w-3 h-3 text-slate-500" />
-                            {sol.telefono}
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-500" />
+                              <span>{formatTimeRange(sol.fecha_inicio, sol.fecha_fin)}</span>
+                            </span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              • {formatDateShort(sol.fecha_inicio)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Insignia de Autorización General para Garita */}
+                      <div>
+                        {isApproved ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-600 text-white shadow-xs">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>AUTORIZADO PARA INGRESO</span>
+                          </span>
+                        ) : isPending ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500 text-white shadow-xs">
+                            <Clock className="w-4 h-4" />
+                            <span>EN EVALUACIÓN (SIN APROBACIÓN FINAL)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-600 text-white shadow-xs">
+                            <XCircle className="w-4 h-4" />
+                            <span>INGRESO NO AUTORIZADO (RECHAZADO)</span>
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Descripción / Asunto del Evento */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                        <Info className="w-3.5 h-3.5 text-brand-600" />
-                        Detalles / Finalidad del Evento
-                      </span>
-                      <p className="text-slate-700 italic leading-relaxed text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-100 line-clamp-3">
-                        {sol.detalles || 'Sin detalles adicionales ingresados.'}
-                      </p>
-                    </div>
-                  </div>
+                    {/* Cuerpo de la Tarjeta */}
+                    <div className="p-5 space-y-4">
+                      {/* Fila de Ubicación, Solicitante y Propósito */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        {/* Ubicación / Ambiente */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-brand-600" />
+                            Ambiente / Espacio Físico
+                          </span>
+                          <p className="font-bold text-slate-900 text-sm">{sol.ambiente_nombre || 'No especificado'}</p>
+                        </div>
 
-                  {/* ========================================================== */}
-                  {/* Módulo A: Insumos de Seguridad Físicos Solicitados         */}
-                  {/* ========================================================== */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <Shield className="w-4 h-4 text-blue-600" />
-                        <span>Insumos y Dispositivos de Seguridad en Campo</span>
-                      </span>
-                      {securityResources.length > 0 && (
-                        <span className="text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200">
-                          {securityResources.length} ítem(s) requeridos
-                        </span>
-                      )}
-                    </div>
-
-                    {securityResources.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {securityResources.map((rec, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-blue-50/80 border border-blue-200 text-blue-900 text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-2"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span>{rec.nombre}</span>
-                            <span className="bg-blue-200/80 px-2 py-0.5 rounded-md text-[11px] font-mono text-blue-950 font-black">
-                              x{rec.cantidad}
+                        {/* Solicitante & Contacto Directo */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-brand-600" />
+                            Solicitante & Facultad
+                          </span>
+                          <p className="font-bold text-slate-800">{sol.area_solicitante || 'Facultad no especificada'}</p>
+                          <div className="flex items-center gap-2 text-slate-500 text-[11px] flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-slate-400" />
+                              {sol.correo_solicitante}
                             </span>
+                            {sol.telefono && (
+                              <span className="flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                                <Phone className="w-3 h-3 text-slate-500" />
+                                {sol.telefono}
+                              </span>
+                            )}
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Descripción / Asunto del Evento */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
+                            <Info className="w-3.5 h-3.5 text-brand-600" />
+                            Detalles / Finalidad del Evento
+                          </span>
+                          <p className="text-slate-700 italic leading-relaxed text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-100 line-clamp-3">
+                            {sol.detalles || 'Sin detalles adicionales ingresados.'}
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">
-                        No se solicitaron vallas, resguardo especial ni dispositivos de seguridad física para este evento.
-                      </p>
-                    )}
-                  </div>
 
-                  {/* ========================================================== */}
-                  {/* Módulo B: Protocolo SSOMA & Personal Externo (Garita)      */}
-                  {/* ========================================================== */}
-                  <div className="pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-amber-600" />
-                        <span>Control de Personal Externo & Protocolo SSOMA</span>
-                      </span>
-                      {sol.requiere_ssoma ? (
-                        <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
-                          ⚠️ Ingreso de Personal Externo
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                          Solo Comunidad UC
-                        </span>
-                      )}
-                    </div>
-
-                    {sol.requiere_ssoma ? (
-                      <div className="space-y-3">
-                        {/* Acceso a Documentos PDF de Garita */}
-                        {(() => {
-                          const proveedores = (sol.documentos_ssoma && sol.documentos_ssoma.length > 0)
-                            ? sol.documentos_ssoma
-                            : [
-                                {
-                                  nombre: 'Proveedor Principal',
-                                  url_sctr_pdf: sol.url_sctr_pdf,
-                                  url_personal_externo_pdf: sol.url_personal_externo_pdf,
-                                },
-                              ];
-
-                          return (
-                            <div className="space-y-2">
-                              {proveedores.map((prov, pIdx) => {
-                                const docs = Array.isArray(prov.documentos) && prov.documentos.length > 0
-                                  ? prov.documentos
-                                  : [
-                                      prov.url_personal_externo_pdf && { url: prov.url_personal_externo_pdf, nombre: 'Personal Externo (PDF)' },
-                                      prov.url_sctr_pdf && { url: prov.url_sctr_pdf, nombre: 'Póliza SCTR (PDF)' },
-                                    ].filter(Boolean);
-
-                                return (
-                                  <div
-                                    key={pIdx}
-                                    className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                                  >
-                                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
-                                      <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0">
-                                        {pIdx + 1}
-                                      </span>
-                                      <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                      {docs.length > 0 ? (
-                                        docs.map((doc, dIdx) => {
-                                          const url = typeof doc === 'string' ? doc : (doc?.url || '');
-                                          if (!url) return null;
-                                          const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${dIdx + 1}`;
-                                          return (
-                                            <a
-                                              key={dIdx}
-                                              href={api.getFileUrl(url)}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
-                                              title={`Verificar ${label} en puerta`}
-                                            >
-                                              <FileText className="w-3.5 h-3.5 text-amber-700" />
-                                              <span>{label}</span>
-                                              <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
-                                            </a>
-                                          );
-                                        })
-                                      ) : (
-                                        <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
-                                          ⚠️ Sin documentos adjuntos
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-
-                        {/* Caja de Lineamientos de Seguridad SSOMA */}
-                        {sol.lineamientos_ssoma ? (
-                          <div className="bg-emerald-50/90 border border-emerald-200 p-3.5 rounded-2xl space-y-1">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                              <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                              Lineamientos de Seguridad SSOMA Emitidos para este Evento:
+                      {/* ========================================================== */}
+                      {/* Módulo A: Insumos de Seguridad Físicos Solicitados         */}
+                      {/* ========================================================== */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <Shield className="w-4 h-4 text-blue-600" />
+                            <span>Insumos y Dispositivos de Seguridad en Campo</span>
+                          </span>
+                          {securityResources.length > 0 && (
+                            <span className="text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200">
+                              {securityResources.length} ítem(s) requeridos
                             </span>
-                            <p className="text-xs text-emerald-950 leading-relaxed font-medium whitespace-pre-line pl-5 border-l-2 border-emerald-400">
-                              {sol.lineamientos_ssoma}
-                            </p>
+                          )}
+                        </div>
+
+                        {securityResources.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {securityResources.map((rec, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-blue-50/80 border border-blue-200 text-blue-900 text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-2"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span>{rec.nombre}</span>
+                                <span className="bg-blue-200/80 px-2 py-0.5 rounded-md text-[11px] font-mono text-blue-950 font-black">
+                                  x{rec.cantidad}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         ) : (
-                          <div className="text-xs text-amber-800 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60 flex items-center gap-2 font-medium">
-                            <Info className="w-4 h-4 text-amber-600 shrink-0" />
-                            <span>Pendiente de emisión de lineamientos técnicos por el Supervisor SSOMA.</span>
-                          </div>
+                          <p className="text-xs text-slate-400 italic">
+                            No se solicitaron vallas, resguardo especial ni dispositivos de seguridad física para este evento.
+                          </p>
                         )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-500 italic">
-                        Evento institucional sin requerimiento de proveedores ni cuadrillas externas.
-                      </p>
-                    )}
-                  </div>
 
-                  {/* ========================================================== */}
-                  {/* Módulo C: Croquis de Distribución en Campo                 */}
-                  {/* ========================================================== */}
-                  {sol.croquis_url && (
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-800">
-                          📐 Croquis de Distribución Física de Mobiliario / Vallas:
-                        </span>
+                      {/* ========================================================== */}
+                      {/* Módulo B: Protocolo SSOMA & Personal Externo (Garita)      */}
+                      {/* ========================================================== */}
+                      <div className="pt-3 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-amber-600" />
+                            <span>Control de Personal Externo & Protocolo SSOMA</span>
+                          </span>
+                          {sol.requiere_ssoma ? (
+                            <span className="text-[10px] font-black uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
+                              ⚠️ Ingreso de Personal Externo
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                              Solo Comunidad UC
+                            </span>
+                          )}
+                        </div>
+
+                        {sol.requiere_ssoma ? (
+                          <div className="space-y-3">
+                            {/* Acceso a Documentos PDF de Garita */}
+                            {(() => {
+                              const proveedores = (sol.documentos_ssoma && sol.documentos_ssoma.length > 0)
+                                ? sol.documentos_ssoma
+                                : [
+                                  {
+                                    nombre: 'Proveedor Principal',
+                                    url_sctr_pdf: sol.url_sctr_pdf,
+                                    url_personal_externo_pdf: sol.url_personal_externo_pdf,
+                                  },
+                                ];
+
+                              return (
+                                <div className="space-y-2">
+                                  {proveedores.map((prov, pIdx) => {
+                                    const docs = Array.isArray(prov.documentos) && prov.documentos.length > 0
+                                      ? prov.documentos
+                                      : [
+                                        prov.url_personal_externo_pdf && { url: prov.url_personal_externo_pdf, nombre: 'Personal Externo (PDF)' },
+                                        prov.url_sctr_pdf && { url: prov.url_sctr_pdf, nombre: 'Póliza SCTR (PDF)' },
+                                      ].filter(Boolean);
+
+                                    return (
+                                      <div
+                                        key={pIdx}
+                                        className="p-2.5 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                                      >
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                                          <span className="w-5 h-5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0">
+                                            {pIdx + 1}
+                                          </span>
+                                          <span>{prov.nombre || `Proveedor #${pIdx + 1}`}</span>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2">
+                                          {docs.length > 0 ? (
+                                            docs.map((doc, dIdx) => {
+                                              const url = typeof doc === 'string' ? doc : (doc?.url || '');
+                                              if (!url) return null;
+                                              const label = (typeof doc === 'object' && doc?.nombre) ? doc.nombre : `Documento ${dIdx + 1}`;
+                                              return (
+                                                <a
+                                                  key={dIdx}
+                                                  href={api.getFileUrl(url)}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition-colors shadow-2xs"
+                                                  title={`Verificar ${label} en puerta`}
+                                                >
+                                                  <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                                  <span>{label}</span>
+                                                  <ExternalLink className="w-3 h-3 text-amber-600 ml-0.5" />
+                                                </a>
+                                              );
+                                            })
+                                          ) : (
+                                            <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 font-semibold">
+                                              ⚠️ Sin documentos adjuntos
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+
+                            {/* Caja de Lineamientos de Seguridad SSOMA */}
+                            {sol.lineamientos_ssoma ? (
+                              <div className="bg-emerald-50/90 border border-emerald-200 p-3.5 rounded-2xl space-y-1">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                                  Lineamientos de Seguridad SSOMA Emitidos para este Evento:
+                                </span>
+                                <p className="text-xs text-emerald-950 leading-relaxed font-medium whitespace-pre-line pl-5 border-l-2 border-emerald-400">
+                                  {sol.lineamientos_ssoma}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-amber-800 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60 flex items-center gap-2 font-medium">
+                                <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>Pendiente de emisión de lineamientos técnicos por el Supervisor SSOMA.</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 italic">
+                            Evento institucional sin requerimiento de proveedores ni cuadrillas externas.
+                          </p>
+                        )}
                       </div>
-                      <a
-                        href={sol.croquis_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
-                      >
-                        <span>Abrir Croquis en Google Drive</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                      </a>
+
+                      {/* ========================================================== */}
+                      {/* Módulo C: Croquis de Distribución en Campo                 */}
+                      {/* ========================================================== */}
+                      {sol.croquis_url && (
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-800">
+                              📐 Croquis de Distribución Física de Mobiliario / Vallas:
+                            </span>
+                          </div>
+                          <a
+                            href={sol.croquis_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                          >
+                            <span>Abrir Croquis en Google Drive</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                          </a>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* 5. Pie de Página Imprimible para Garita de Seguridad            */}
+          {/* ============================================================== */}
+          <div className="hidden print:block pt-8 mt-12 border-t border-slate-300">
+            <div className="grid grid-cols-2 gap-12 text-center text-xs text-slate-800">
+              <div className="space-y-12">
+                <div className="border-b border-slate-400 mx-8"></div>
+                <div>
+                  <p className="font-bold">Firma del Oficial de Guardia en Turno</p>
+                  <p className="text-slate-500 text-[10px]">Área de Seguridad Interna y Vigilancia</p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* 5. Pie de Página Imprimible para Garita de Seguridad            */}
-      {/* ============================================================== */}
-      <div className="hidden print:block pt-8 mt-12 border-t border-slate-300">
-        <div className="grid grid-cols-2 gap-12 text-center text-xs text-slate-800">
-          <div className="space-y-12">
-            <div className="border-b border-slate-400 mx-8"></div>
-            <div>
-              <p className="font-bold">Firma del Oficial de Guardia en Turno</p>
-              <p className="text-slate-500 text-[10px]">Área de Seguridad Interna y Vigilancia</p>
+              <div className="space-y-12">
+                <div className="border-b border-slate-400 mx-8"></div>
+                <div>
+                  <p className="font-bold">V°B° Supervisor General de Seguridad</p>
+                  <p className="text-slate-500 text-[10px]">Control de Garita y Puertas Campus</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="space-y-12">
-            <div className="border-b border-slate-400 mx-8"></div>
-            <div>
-              <p className="font-bold">V°B° Supervisor General de Seguridad</p>
-              <p className="text-slate-500 text-[10px]">Control de Garita y Puertas Campus</p>
-            </div>
-          </div>
-        </div>
-      </div>
         </>
       )}
     </div>

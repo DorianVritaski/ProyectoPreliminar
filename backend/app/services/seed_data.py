@@ -284,3 +284,99 @@ def seed_accesos_sample(db: Session):
     db.commit()
     print("Datos semilla de Solicitudes de Acceso inicializados con éxito.")
 
+
+def seed_pacientes_sample(db: Session):
+    from app.models.solicitud_paciente import SolicitudPaciente
+    from datetime import date, time
+    if db.query(SolicitudPaciente).first():
+        return
+
+    hoy = date.today()
+
+    p1 = SolicitudPaciente(
+        codigo_ticket="PAC-2026-8912",
+        escuela_profesional="Odontología",
+        estudiante_correo="72819340@continental.edu.pe",
+        estudiante_nombre="Camila Alanya Quispe",
+        estudiante_dni="72819340",
+        estudiante_telefono="964123456",
+        paciente_nombre="Marcos Tapia Sánchez",
+        paciente_dni="43901234",
+        paciente_telefono="954789012",
+        es_menor_edad=False,
+        apoderado_nombre=None,
+        apoderado_dni=None,
+        asignatura="Clínica Integral del Adulto I",
+        nrc="14205",
+        docente_nombre="Dr. Hugo Ramos Rivera",
+        fecha_atencion=hoy,
+        horario_inicio=time(8, 40),
+        horario_fin=time(10, 10),
+        url_consentimiento_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        declaracion_aceptada=True,
+        ingresado_garita=False,
+        fecha_ingreso_real=None,
+        estado="REGISTRADO",
+        observaciones_ssoma=None
+    )
+
+    p2 = SolicitudPaciente(
+        codigo_ticket="PAC-2026-0419",
+        escuela_profesional="Psicología (Cámara Gesell)",
+        estudiante_correo="74125896@continental.edu.pe",
+        estudiante_nombre="Rodrigo Castro Morales",
+        estudiante_dni="74125896",
+        estudiante_telefono="987654321",
+        paciente_nombre="Sofía Benítez Huamán",
+        paciente_dni="78901234",
+        paciente_telefono="945112233",
+        es_menor_edad=True,
+        apoderado_nombre="Lucía Huamán Flores",
+        apoderado_dni="41239876",
+        asignatura="Evaluación y Diagnóstico Psicológico Infanto-Juvenil",
+        nrc="18302",
+        docente_nombre="Mg. Patricia Villanueva Salazar",
+        fecha_atencion=hoy,
+        horario_inicio=time(10, 30),
+        horario_fin=time(12, 0),
+        url_consentimiento_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        declaracion_aceptada=True,
+        ingresado_garita=False,
+        fecha_ingreso_real=None,
+        estado="REGISTRADO",
+        observaciones_ssoma=None
+    )
+
+    p3 = SolicitudPaciente(
+        codigo_ticket="PAC-2026-3105",
+        escuela_profesional="Enfermería / Terapia Física",
+        estudiante_correo="71239845@continental.edu.pe",
+        estudiante_nombre="Valeria Méndez Rojas",
+        estudiante_dni="71239845",
+        estudiante_telefono="991234876",
+        paciente_nombre="Jorge Aliaga Paucar",
+        paciente_dni="19827364",
+        paciente_telefono="964887766",
+        es_menor_edad=False,
+        apoderado_nombre=None,
+        apoderado_dni=None,
+        asignatura="Terapia Física y Rehabilitación en Neurología",
+        nrc="21045",
+        docente_nombre="Lic. Andrés Gómez Pérez",
+        fecha_atencion=hoy,
+        horario_inicio=time(14, 0),
+        horario_fin=time(15, 30),
+        url_consentimiento_pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        declaracion_aceptada=True,
+        ingresado_garita=True,
+        fecha_ingreso_real=datetime.now(),
+        estado="INGRESADO",
+        observaciones_ssoma=None
+    )
+
+    db.add(p1)
+    db.add(p2)
+    db.add(p3)
+    db.commit()
+    print("Datos semilla de Solicitudes de Pacientes inicializados con éxito.")
+
