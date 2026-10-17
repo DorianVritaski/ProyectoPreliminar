@@ -106,6 +106,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
           </div>
 
           {/* Botones rápidos Demo por las 4 Áreas Operativas */}
+          {/*}
           <div className="space-y-1.5 pt-1">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
               Cuentas Demo de las 4 Áreas Operativas:
@@ -141,7 +142,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccessLogin }) {
               </button>
             </div>
           </div>
-
+          */}
           <div className="pt-2">
             <button
               type="submit"
