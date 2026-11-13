@@ -26,6 +26,7 @@ import StatusBadge from './StatusBadge';
 import ModificarSolicitudModal from './ModificarSolicitudModal';
 import { formatTime, formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import { api } from '../../api/client';
+import DictamenSSOMACard from '../SSOMA/DictamenSSOMACard';
 
 export default function TrackingView({ initialSearchQuery = '' }) {
   const [query, setQuery] = useState(initialSearchQuery);
@@ -519,6 +520,15 @@ export default function TrackingView({ initialSearchQuery = '' }) {
                       );
                     })()}
                   </div>
+                )}
+
+                {/* Dictamen SSOMA Oficial de Documentos Adjuntos */}
+                {sol.dictamen_ssoma && (
+                  <DictamenSSOMACard
+                    dictamen={sol.dictamen_ssoma}
+                    showReinspectButton={false}
+                    title="Dictamen SSOMA: Verificación Oficial de Documentación"
+                  />
                 )}
 
                 {/* Lineamientos y Normas de Seguridad (SSOMA) */}

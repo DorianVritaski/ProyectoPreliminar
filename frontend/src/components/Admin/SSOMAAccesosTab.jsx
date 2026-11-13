@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/client';
 import { formatTimeRange, formatDateShort } from '../../utils/formatters';
+import DictamenSSOMACard from '../SSOMA/DictamenSSOMACard';
 
 export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
   const [accesos, setAccesos] = useState([]);
@@ -41,6 +42,20 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
   // Modal para observar SCTR / Solicitud de acceso
   const [observingAcceso, setObservingAcceso] = useState(null);
   const [observacionTexto, setObservacionTexto] = useState('');
+  const [reinspectingAccesoId, setReinspectingAccesoId] = useState(null);
+
+  const handleReinspeccionarAcceso = async (accId) => {
+    setReinspectingAccesoId(accId);
+    try {
+      await api.reinspeccionarAccesoSSOMA(accId);
+      showFeedback?.('Inspección de documentos de acceso completada con éxito.');
+      await loadAccesos();
+    } catch (err) {
+      showFeedback?.(err.message || 'Error al re-inspeccionar documentos.', 'error');
+    } finally {
+      setReinspectingAccesoId(null);
+    }
+  };
 
   const loadAccesos = async () => {
     setLoading(true);
@@ -447,6 +462,14 @@ export default function SSOMAAccesosTab({ adminUser, showFeedback }) {
                         )}
                       </div>
                     </div>
+
+                    {/* Dictamen de Inspección Automática SSOMA */}
+                    <DictamenSSOMACard
+                      dictamen={acc.dictamen_ssoma}
+                      onReinspect={() => handleReinspeccionarAcceso(acc.id)}
+                      isReinspecting={reinspectingAccesoId === acc.id}
+                      title="Dictamen SSOMA: Verificación de SCTR y Personal de Acceso"
+                    />
                   </div>
                 ) : (
                   /* CASO B: VISITA ESTÁNDAR / ACADÉMICA */

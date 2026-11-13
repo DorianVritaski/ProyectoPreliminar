@@ -56,6 +56,7 @@ class SolicitudAccesoResponse(BaseModel):
     url_sctr_pdf: str | None
     url_lista_personal_pdf: str | None
     documentos_ssoma: Any | None
+    dictamen_ssoma: Any | None = None
     visitantes: Any | None
     estado: str
     check_in_realizado: bool

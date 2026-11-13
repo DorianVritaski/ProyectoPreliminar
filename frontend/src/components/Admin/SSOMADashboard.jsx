@@ -28,6 +28,7 @@ import { api } from '../../api/client';
 import { formatTimeRange, formatDateFull, formatDateShort } from '../../utils/formatters';
 import SSOMAAccesosTab from './SSOMAAccesosTab';
 import PacientesSSOMATab from './PacientesSSOMATab';
+import DictamenSSOMACard from '../SSOMA/DictamenSSOMACard';
 
 export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicData }) {
   const [activeMainTab, setActiveMainTab] = useState('eventos'); // 'eventos' | 'accesos'
@@ -44,6 +45,20 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
   // Modal para registrar u observar solicitud
   const [observingSol, setObservingSol] = useState(null); // solicitud objeto
   const [observacionTexto, setObservacionTexto] = useState('');
+  const [reinspectingSolId, setReinspectingSolId] = useState(null);
+
+  const handleReinspeccionarEvento = async (solId) => {
+    setReinspectingSolId(solId);
+    try {
+      await api.reinspeccionarEventoSSOMA(solId);
+      showFeedback('Inspección automática de documentos SSOMA completada con éxito.');
+      await loadSolicitudesSSOMA();
+    } catch (err) {
+      showFeedback(err.message || 'Error al inspeccionar documentos con SSOMA.', 'error');
+    } finally {
+      setReinspectingSolId(null);
+    }
+  };
 
   const showFeedback = (message, type = 'success') => {
     setFeedback({ message, type });
@@ -663,6 +678,14 @@ export default function SSOMADashboard({ adminUser, onLogout, onRefreshPublicDat
                     );
                   })()}
                 </div>
+
+                {/* Dictamen de Inspección Automática SSOMA */}
+                <DictamenSSOMACard
+                  dictamen={sol.dictamen_ssoma}
+                  onReinspect={() => handleReinspeccionarEvento(sol.id)}
+                  isReinspecting={reinspectingSolId === sol.id}
+                  title="Dictamen SSOMA: Verificación de Póliza SCTR y Nómina"
+                />
 
                 {/* Historial de Observación de SSOMA (Visible siempre con su contexto) */}
                 {confSSOMA?.observacion && (

@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 
@@ -13,6 +13,7 @@ from app.schemas.solicitud_acceso import (
     SolicitudAccesoSSOMAUpdate,
     SolicitudAccesoCheckInUpdate,
 )
+from app.api.v1.ssoma_inspeccion import tarea_procesar_acceso_ssoma_ia
 
 router = APIRouter()
 
@@ -67,6 +68,7 @@ def listar_solicitudes_acceso(
 @router.post("", response_model=SolicitudAccesoResponse, status_code=status.HTTP_201_CREATED)
 def registrar_solicitud_acceso(
     data: SolicitudAccesoCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     if data.fecha_fin <= data.fecha_inicio:
@@ -126,9 +128,23 @@ def registrar_solicitud_acceso(
         fecha_check_in=None,
     )
 
+    # Inspección y auditoría SSOMA IA (Google Drive / OpenAI gpt-4o-mini)
+    if data.requiere_ssoma_riesgo:
+        nueva_solicitud.dictamen_ssoma = {
+            "estado_dictamen": "AUDITORIA_IA_EN_CURSO",
+            "mensaje_dictamen": "Auditoría con OpenAI gpt-4o-mini en curso...",
+            "aprobacion_sugerida": False,
+            "dictamen_sugerido": "PENDIENTE",
+            "motor": "OpenAI gpt-4o-mini"
+        }
+
     db.add(nueva_solicitud)
     db.commit()
     db.refresh(nueva_solicitud)
+
+    if data.requiere_ssoma_riesgo:
+        background_tasks.add_task(tarea_procesar_acceso_ssoma_ia, nueva_solicitud.id)
+
     return nueva_solicitud
 
 

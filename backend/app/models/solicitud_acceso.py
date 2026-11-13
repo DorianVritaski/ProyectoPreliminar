@@ -30,6 +30,7 @@ class SolicitudAcceso(Base):
     url_sctr_pdf = Column(Text, nullable=True)
     url_lista_personal_pdf = Column(Text, nullable=True)
     documentos_ssoma = Column(JSON, nullable=True)
+    dictamen_ssoma = Column(JSON, nullable=True)
 
     # Lista de visitantes / nómina
     # Estructura: [{"id": 1, "nombre": "...", "dni": "...", "empresa": "...", "ingresado": false, "hora_ingreso": null}]

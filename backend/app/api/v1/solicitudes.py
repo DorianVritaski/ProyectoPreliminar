@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi import APIRouter, Depends, Query, status, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.solicitud import Solicitud
@@ -14,20 +14,26 @@ from app.services.solicitud_service import (
     solicitar_modificacion,
     formatear_solicitud_response
 )
+from app.api.v1.ssoma_inspeccion import tarea_procesar_solicitud_ssoma_ia
 
 router = APIRouter()
 
 @router.post("", response_model=SolicitudResponse, status_code=status.HTTP_201_CREATED)
 def registrar_solicitud(
     data: SolicitudCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
     Especificación SDD 5.C:
     POST /api/v1/solicitudes
     Crea una nueva solicitud con validación de RN-01 (solapamiento) y RN-02 (stock).
+    Ejecuta auditoría SSOMA IA en segundo plano si requiere personal externo.
     """
-    return crear_solicitud(db, data)
+    solicitud_resp = crear_solicitud(db, data)
+    if data.requiere_ssoma:
+        background_tasks.add_task(tarea_procesar_solicitud_ssoma_ia, solicitud_resp.id)
+    return solicitud_resp
 
 @router.get("/seguimiento", response_model=list[SolicitudResponse])
 def consultar_seguimiento(
@@ -78,6 +84,7 @@ def actualizar_estado_solicitud(
 def solicitar_modificacion_solicitud(
     ticket: str,
     data: SolicitudModificacionRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -85,4 +92,7 @@ def solicitar_modificacion_solicitud(
     POST /api/v1/solicitudes/{ticket}/solicitar-edicion
     Permite modificar horarios, recursos, croquis o SSOMA de una solicitud existente.
     """
-    return solicitar_modificacion(db, ticket, data)
+    solicitud_resp = solicitar_modificacion(db, ticket, data)
+    if data.requiere_ssoma:
+        background_tasks.add_task(tarea_procesar_solicitud_ssoma_ia, solicitud_resp.id)
+    return solicitud_resp

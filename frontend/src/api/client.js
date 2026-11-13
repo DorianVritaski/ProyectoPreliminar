@@ -313,4 +313,21 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
+
+  // -------------------------------------------------------------
+  // Motor de Inspección Automática de Documentos SSOMA (Drive)
+  // -------------------------------------------------------------
+  inspeccionarDocumentoSSOMA: (payload) =>
+    fetchJSON('/ssoma/inspeccionar-documento', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  reinspeccionarEventoSSOMA: (solicitudId) =>
+    fetchJSON(`/ssoma/inspeccionar-solicitud-evento/${solicitudId}`, {
+      method: 'POST',
+    }),
+  reinspeccionarAccesoSSOMA: (accesoId) =>
+    fetchJSON(`/ssoma/inspeccionar-solicitud-acceso/${accesoId}`, {
+      method: 'POST',
+    }),
 };

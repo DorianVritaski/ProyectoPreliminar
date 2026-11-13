@@ -116,6 +116,7 @@ class SolicitudResponse(BaseModel):
     url_sctr_pdf: str | None = None
     url_personal_externo_pdf: str | None = None
     documentos_ssoma: list[ProveedorSSOMAItem] | None = None
+    dictamen_ssoma: dict | None = None
     lineamientos_ssoma: str | None = None
     edicion_solicitada: bool = False
     motivo_modificacion: str | None = None

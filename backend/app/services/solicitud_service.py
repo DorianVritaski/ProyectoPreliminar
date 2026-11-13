@@ -131,6 +131,17 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         if not url_personal:
             url_personal = docs_ssoma_dict[0].get("url_personal_externo_pdf")
 
+    # Inspección automática inicial de documentos SSOMA (Google Drive / PDF / Excel)
+    dictamen_ssoma = None
+    if (data.protocolo_ssoma or data.requiere_ssoma) and docs_ssoma_dict:
+        dictamen_ssoma = {
+            "estado_dictamen": "AUDITORIA_IA_EN_CURSO",
+            "mensaje_dictamen": "Auditoría con OpenAI gpt-4o-mini en curso...",
+            "aprobacion_sugerida": False,
+            "dictamen_sugerido": "PENDIENTE",
+            "motor": "OpenAI gpt-4o-mini"
+        }
+
     solicitud = Solicitud(
         codigo_ticket=codigo_ticket,
         correo_solicitante=data.correo_solicitante,
@@ -151,6 +162,7 @@ def crear_solicitud(db: Session, data: SolicitudCreate) -> SolicitudResponse:
         url_sctr_pdf=url_sctr,
         url_personal_externo_pdf=url_personal,
         documentos_ssoma=docs_ssoma_dict,
+        dictamen_ssoma=dictamen_ssoma,
         lineamientos_ssoma=None
     )
     db.add(solicitud)
@@ -340,6 +352,7 @@ def formatear_solicitud_response(db: Session, solicitud: Solicitud) -> Solicitud
         url_sctr_pdf=getattr(solicitud, "url_sctr_pdf", None),
         url_personal_externo_pdf=getattr(solicitud, "url_personal_externo_pdf", None),
         documentos_ssoma=getattr(solicitud, "documentos_ssoma", None),
+        dictamen_ssoma=getattr(solicitud, "dictamen_ssoma", None),
         lineamientos_ssoma=getattr(solicitud, "lineamientos_ssoma", None),
         edicion_solicitada=bool(getattr(solicitud, "edicion_solicitada", False)),
         motivo_modificacion=getattr(solicitud, "motivo_modificacion", None),
@@ -486,6 +499,16 @@ def solicitar_modificacion(db: Session, codigo_ticket: str, data: SolicitudModif
     solicitud.url_sctr_pdf = url_sctr
     solicitud.url_personal_externo_pdf = url_personal
     solicitud.documentos_ssoma = docs_ssoma_dict
+
+    # Re-inspección de documentos SSOMA al modificar
+    if (data.protocolo_ssoma or data.requiere_ssoma) and docs_ssoma_dict:
+        solicitud.dictamen_ssoma = {
+            "estado_dictamen": "AUDITORIA_IA_EN_CURSO",
+            "mensaje_dictamen": "Auditoría con OpenAI gpt-4o-mini en curso...",
+            "aprobacion_sugerida": False,
+            "dictamen_sugerido": "PENDIENTE",
+            "motor": "OpenAI gpt-4o-mini"
+        }
     
     solicitud.edicion_solicitada = True
     solicitud.motivo_modificacion = data.motivo_modificacion.strip()

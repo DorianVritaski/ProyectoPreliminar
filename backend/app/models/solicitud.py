@@ -29,6 +29,7 @@ class Solicitud(Base):
     url_sctr_pdf = Column(String(500), nullable=True)
     url_personal_externo_pdf = Column(String(500), nullable=True)
     documentos_ssoma = Column(JSON, nullable=True)
+    dictamen_ssoma = Column(JSON, nullable=True)
     lineamientos_ssoma = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

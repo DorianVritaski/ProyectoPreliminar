@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "gestevents_pass")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "gestevents_db")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+    OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY", None)
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:

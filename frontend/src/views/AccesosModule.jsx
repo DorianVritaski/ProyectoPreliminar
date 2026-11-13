@@ -33,6 +33,8 @@ import {
 import { api } from '../api/client';
 import { formatDateShort, formatTimeRange } from '../utils/formatters';
 import AccessCalendarPicker from '../components/Accesos/AccessCalendarPicker';
+import DocumentoDriveInspectorBtn from '../components/SSOMA/DocumentoDriveInspectorBtn';
+import DictamenSSOMACard from '../components/SSOMA/DictamenSSOMACard';
 
 export default function AccesosModule() {
   const navigate = useNavigate();
@@ -587,37 +589,44 @@ export default function AccesosModule() {
                       </div>
 
                       {/* Lista dinámica de campos de enlaces */}
-                      <div className="space-y-2.5">
+                      <div className="space-y-3">
                         {documentosPertinentes.map((doc, idx) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-700/80 focus-within:border-amber-500 transition-colors"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                              {idx + 1}
+                          <div key={doc.id} className="space-y-1.5">
+                            <div className="flex items-center gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-700/80 focus-within:border-amber-500 transition-colors">
+                              <div className="w-7 h-7 rounded-lg bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                                {idx + 1}
+                              </div>
+
+                              <div className="flex-1 relative">
+                                <input
+                                  type="url"
+                                  required={formData.requiere_ssoma_riesgo && idx === 0}
+                                  value={doc.url}
+                                  onChange={(e) => handleDocumentoChange(idx, e.target.value)}
+                                  placeholder={`Enlace al documento ${idx + 1} (ej. https://drive.google.com/file/d/...)`}
+                                  className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+                                />
+                              </div>
+
+                              {documentosPertinentes.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveDocumento(idx)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors shrink-0"
+                                  title="Eliminar este campo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
 
-                            <div className="flex-1 relative">
-                              <input
-                                type="url"
-                                required={formData.requiere_ssoma_riesgo && idx === 0}
-                                value={doc.url}
-                                onChange={(e) => handleDocumentoChange(idx, e.target.value)}
-                                placeholder={`Enlace al documento ${idx + 1} (ej. https://drive.google.com/file/d/...)`}
-                                className="w-full bg-transparent px-2 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
-                              />
-                            </div>
-
-                            {documentosPertinentes.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveDocumento(idx)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors shrink-0"
-                                title="Eliminar este campo"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            {/* Verificador en tiempo real del documento Drive */}
+                            <DocumentoDriveInspectorBtn
+                              urlDrive={doc.url}
+                              fechaEvento={formData.fecha_inicio}
+                              dnisEsperados={visitantes.map((v) => v.dni).filter(Boolean)}
+                              motivoTrabajo={formData.motivo}
+                            />
                           </div>
                         ))}
                       </div>
@@ -986,6 +995,15 @@ export default function AccesosModule() {
                       </span>
                     </div>
                   </div>
+
+                  {/* DICTAMEN DE INSPECCIÓN SSOMA AUTOMÁTICA */}
+                  {paseEncontrado.dictamen_ssoma && (
+                    <DictamenSSOMACard
+                      dictamen={paseEncontrado.dictamen_ssoma}
+                      showReinspectButton={false}
+                      title="Dictamen SSOMA Oficial de Documentos Adjuntos"
+                    />
+                  )}
 
                   {/* LINEAMIENTOS OBLIGATORIOS DE SSOMA */}
                   {paseEncontrado.lineamientos_ssoma && (

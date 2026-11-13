@@ -26,6 +26,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { api } from '../../api/client';
+import DocumentoDriveInspectorBtn from '../SSOMA/DocumentoDriveInspectorBtn';
 
 const createInitialProveedor = (index = 1) => ({
   id: `prov_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -1405,47 +1406,52 @@ export default function ReservationModal({
                                     {/* Lista dinámica de campos de enlaces para este proveedor */}
                                     <div className="space-y-2">
                                       {docs.map((doc, docIdx) => (
-                                        <div
-                                          key={doc.id || docIdx}
-                                          className="flex items-center gap-2 bg-white p-2 rounded-xl border border-emerald-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all"
-                                        >
-                                          <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                                            {docIdx + 1}
+                                        <div key={doc.id || docIdx} className="space-y-1.5">
+                                          <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-emerald-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                                            <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                                              {docIdx + 1}
+                                            </div>
+
+                                            <div className="flex-1 relative">
+                                              <input
+                                                type="url"
+                                                required={docIdx === 0}
+                                                value={doc.url}
+                                                onChange={(e) => handleDocumentoChangeProveedor(prov.id, docIdx, e.target.value)}
+                                                placeholder={`Enlace al documento ${docIdx + 1} (ej. https://drive.google.com/file/d/...)`}
+                                                className="w-full bg-transparent px-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
+                                              />
+                                            </div>
+
+                                            {doc.url && (
+                                              <a
+                                                href={doc.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Probar enlace"
+                                                className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded transition-colors shrink-0"
+                                              >
+                                                <ExternalLink className="w-3.5 h-3.5" />
+                                              </a>
+                                            )}
+
+                                            {docs.length > 1 && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveDocumentoProveedor(prov.id, docIdx)}
+                                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors shrink-0"
+                                                title="Eliminar este campo"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            )}
                                           </div>
 
-                                          <div className="flex-1 relative">
-                                            <input
-                                              type="url"
-                                              required={docIdx === 0}
-                                              value={doc.url}
-                                              onChange={(e) => handleDocumentoChangeProveedor(prov.id, docIdx, e.target.value)}
-                                              placeholder={`Enlace al documento ${docIdx + 1} (ej. https://drive.google.com/file/d/...)`}
-                                              className="w-full bg-transparent px-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
-                                            />
-                                          </div>
-
-                                          {doc.url && (
-                                            <a
-                                              href={doc.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              title="Probar enlace"
-                                              className="p-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded transition-colors shrink-0"
-                                            >
-                                              <ExternalLink className="w-3.5 h-3.5" />
-                                            </a>
-                                          )}
-
-                                          {docs.length > 1 && (
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRemoveDocumentoProveedor(prov.id, docIdx)}
-                                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors shrink-0"
-                                              title="Eliminar este campo"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                          )}
+                                          <DocumentoDriveInspectorBtn
+                                            urlDrive={doc.url}
+                                            fechaEvento={formData.fecha_inicio}
+                                            motivoTrabajo={formData.detalles || formData.tipo_evento}
+                                          />
                                         </div>
                                       ))}
                                     </div>

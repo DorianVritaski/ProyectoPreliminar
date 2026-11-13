@@ -8,6 +8,7 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.archivos import router as archivos_router
 from app.api.v1.accesos import router as accesos_router
 from app.api.v1.pacientes import router as pacientes_router
+from app.api.v1.ssoma_inspeccion import router as ssoma_inspeccion_router
 
 api_router = APIRouter()
 
@@ -21,6 +22,7 @@ api_router.include_router(accesos_router, prefix="/accesos", tags=["Control de A
 api_router.include_router(accesos_router, prefix="/admin/accesos", tags=["Control de Accesos Admin"])
 api_router.include_router(pacientes_router, prefix="/pacientes", tags=["Pacientes Prácticas Clínicas"])
 api_router.include_router(pacientes_router, prefix="/admin/pacientes", tags=["Pacientes Prácticas Clínicas Admin"])
+api_router.include_router(ssoma_inspeccion_router, prefix="/ssoma", tags=["Inspección Automática SSOMA"])
 api_router.include_router(archivos_router)
 
 
