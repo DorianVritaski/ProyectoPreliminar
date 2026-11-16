@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
@@ -18,6 +19,13 @@ async def lifespan(app: FastAPI):
         try:
             print("Verificando conexión con PostgreSQL...")
             Base.metadata.create_all(bind=engine)
+            # Asegurar columnas recientes en BD
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE solicitudes ADD COLUMN IF NOT EXISTS dictamen_ssoma JSON;"))
+                    conn.execute(text("ALTER TABLE solicitudes_accesos ADD COLUMN IF NOT EXISTS dictamen_ssoma JSON;"))
+            except Exception as mig_err:
+                print(f"Nota sobre auto-migración de columnas: {mig_err}")
             with SessionLocal() as db:
                 seed_database(db)
                 from app.services.seed_data import seed_accesos_sample, seed_pacientes_sample
